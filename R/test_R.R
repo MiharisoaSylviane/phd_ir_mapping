@@ -120,52 +120,6 @@ points(sims$observed_frequency,
 
 ### Sylviane has to determine the phenotype proportion by using the allele frequency
 
-# to calculate the phenotype, we will use the equilibrum Hardy-Weinberg equilibrium
-# Probability of an allele to occur
-# phenotype <- zeros(time_series)
-# ph_initial <- uniform(0,1)
-# # phenotype <- as_data(rep(0, 10))
-# phenotype [1] <- ph_initial
-# for (t in 1:(time_series-1)) {
-#   phenotype[t + 1] <- (p_resist[t] ^ 2) + (2 * p_susc[t] * p_resist[t])
-#   
-# }
-# 
-# # simulate genotypic allele frequency data
-# n_tested <- rep(100, time_series)
-# n_positive <- binomial(size = n_tested, prob = phenotype)
-# 
-# 
-# # observed_frequency <- n_positive / n_tested
-# 
-# sims <- calculate(phenotype,
-#                   n_positive,
-#                   nsim = 1,
-#                   values = list(p0 = 0.9))
-# sims
-# plot(sims$phenotype[1, ,1])
-
-
-# sims <- calculate(p_resist,
-#                   n_resistant,
-#                   nsim = 1,
-#                   values = list(p0 = 0.9))
-# sims
-# 
-# 
-# n_resistant <- numeric(time_series)  # Vecteur pour stocker le nombre de moustiques résistants
-
-
-# determine the proportion of mosquitos resistant
-# by using the fitness of the allele and also the the degree of dominance
-
-
-
-# Proportion of resistant phenotype
-# w_SS <- 1           # Fitness of SS
-# w_SR <- 1 + h * s   # Fitness of SR (depends on dominance h)
-# w_RR <- 1 + s  
-
 resistant_phenotype <- p_resist^2 + 2 * p_susc * p_resist
 
 # simulation
@@ -231,7 +185,7 @@ plot(sims$p_resist[1, , 1],
      type = "b")
 
 
- # the proportion of phenotype with homozygous allele
+# the proportion of phenotype with homozygous allele
 # the phenotype resistant is expressed 
 resistant_phenotype_hom <- p_resist^2
 
@@ -241,9 +195,22 @@ susceptible_phenotype_hom <- p_susc^2
 # the proportion of the phenotype with heterozygous allele
 resistant_phenotype_heter <- 2*p_resist*p_susc 
 
+# here we got the proportion of resistant phenotype 
 proportion_resistant_phenotype <- resistant_phenotype_hom * 1 +
   susceptible_phenotype_hom* 0 +
   resistant_phenotype_heter * h
+
+
+sims <- calculate(proportion_resistant_phenotype, p_resist,
+                  n_positive,
+                  observed_frequency,
+                  nsim = 1,
+                  values = list(p0 = 0.9))
+sims
+
+
+
+
 
 # we consider we have two alleles resistant with the susceptible allele
 # (p+q+r)^2 =1
