@@ -8,19 +8,26 @@ MODELING THE GENOTYPE AND PHENOTYPE in ANOPHELES MOSQUITOES IN AFRICA 1- HAPLOID
 
 We assume the initial observations data are the total number of mosquitoes $Nt$ composed by the number of Anopheles resistant NRt and susceptible NSt at time point t and in location li. And those data are from the bioassay results. NRtili = Ntr Rr, Rr is the reprodcutible rate.
 
-DIPLOID MULTILOCUS MODEL I- Data inputs • WHO discriminating concentration bioassay results from the Vector Atlas database, incorporating data from IR Mapper and WHO Malaria Threats Map. • Vector Atlas data results about genotype frequency • Covariate data : - Modelled use of ITNs 2000-2022 (MAP, see Bertozzi-villa et al. 2021) - Reported coverage of IRS 1997-2022 (WHO/MAP) - Population density 2000-2030 (Worldpop/MAP, adjusted to UN forecasts 2021-2030) - Agricultural intensity of crop production in 2010 (SPAM) Model estimates and projections before/after these covariate year ranges assume covariates are static at earliest/latest year. E.g. for 2023-30 ITNs are set at 2022 estimated levels
+DIPLOID MULTILOCUS MODEL 
+I- Data inputs 
+• WHO discriminating concentration bioassay results from the Vector Atlas database, incorporating data from IR Mapper and WHO Malaria Threats Map.
+• Vector Atlas data results about genotype frequency
+• Covariate data : 
+    - Modelled use of ITNs 2000-2022 (MAP, see Bertozzi-villa et al. 2021) 
+    - Reported coverage of IRS 1997-2022 (WHO/MAP) 
+    - Population density 2000-2030 (Worldpop/MAP, adjusted to UN forecasts 2021-2030) 
+    - Agricultural intensity of crop production in 2010 (SPAM) Model estimates and projections before/after these covariate year ranges assume covariates are static at earliest/latest year. E.g. for 2023-30 ITNs are set at 2022 estimated levels
 
 II - MODELS DETAILS
-
 1- Observation models:
-
 Bioassay data:
-
 Given data on $N_{i,j}$ and $D_(i,j)$, the observed numbers of mosquitoes tested, and that died,we assume these follow a beta-binomial distribution:
 
 $$
 D_{j,i} \sim Betabinomial(N, Q*, \rho)
-$$ Where $Q*$ is the modelled population-level susceptibility of the total vector population at the location l= L(i) and time t= L(i) from which this sample of mosquitoes was collected. ρ is an overdispersion term for the insecticide class c=C(j) to which j belongs, capturing the non-independence of individuals selected in the bioassay sample and therefore accounting for the significant variance in susceptibility results from bioassays conducted on different samples of vectors.
+$$ 
+
+Where $Q*$ is the modelled population-level susceptibility of the total vector population at the location l= L(i) and time t= L(i) from which this sample of mosquitoes was collected. ρ is an overdispersion term for the insecticide class c=C(j) to which j belongs, capturing the non-independence of individuals selected in the bioassay sample and therefore accounting for the significant variance in susceptibility results from bioassays conducted on different samples of vectors.
 
 Genotype test results for multilocus:
 
@@ -42,7 +49,6 @@ Allele frequency data: We consider $N^{i}$ is the number of mosquitoes tested, a
 $$  
 N_{lo,t}^{a} \sim Betabinomial (N^{a}, P_lo, \rho_{a})
 $$
-
 Computing phenotype and genotype frequencies:
 Computing $Q*$ (fraction of susceptible mosquitoes in the whole population) 
 $$ Q_{lo,t}* = \sum_{g=1}^{n} Q_{g}* Z_{g,lo,t}
