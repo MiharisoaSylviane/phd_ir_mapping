@@ -74,5 +74,5 @@ From the silocus fitness, and dominance h, we define the polygenic fitness Gw (m
 
 
 
-Maintainer: Sylviane Miharisoa · miharisoasylviane@gmail.com
+Sylviane Miharisoa · miharisoasylviane@gmail.com
 Issues and ideas? please open a GitHub issue 
