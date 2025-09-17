@@ -40,6 +40,7 @@ However to summarize Roadmap of this model:
 ### Step 3 : Per locus genotype frequency composition
 	Construct the multilocus genotype space g across loci.
 	Start with locus independence (linkage equilibrium); later, add LD/haplotypes if needed.
+ > **First draft in progress**
 	Combine per-locus maps to get multilocus U_(g,c)(semi-mechanistic linkage from genotype to phenotype).
 ### Step 4 : Mutlticlocus genotype frequency for the next time point
 	Infer the population mixture Z_(g,lo,t)using genotype data (Dirichlet–Multinomial).
@@ -49,8 +50,8 @@ However to summarize Roadmap of this model:
 	Optionally include migration or temporal smoothing to share information across space–time.
 ### Step 6 : Population susceptibility / phenotype aggregation
 	Compute population-level susceptibility (phenotype) for each insecticide class:
-$$Q_(lo,t,c)^*=∑_g U_(g,c) " 
-**First draft in progress**
+ $$Q_(lo,t,c)^*=∑_g U_(g,c)$$
+> **First draft in progress**
 ### Step 7: Simulating data to test the model
 	Creating simulated data to test based on the likelihood described in the mathematic description of the model
 ### Step 8: Visualisation and cleaning
