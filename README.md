@@ -55,11 +55,11 @@ From the silocus fitness, and dominance h, we define the polygenic fitness Gw (m
 ### Step 6 : Population susceptibility / phenotype aggregation
 	Compute population-level susceptibility (phenotype) for each insecticide class
 >
-# SIMULATION 
+## Simulation
 ### Step 7: Simulating data to test the model
 	Creating simulated data to test based on the likelihood described in the mathematic description of the model
  >
-# APPLICATION ON REAL DATA
+## Application on real data
 ### Step 8: Visualisation and cleaning
 	Normalized *Anopheles* data (detecting missing data, errors and others)
 	Visualize the covariates
