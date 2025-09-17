@@ -1,7 +1,7 @@
 # Spatiotemporal modelling of the spread of insecticide resistance in Africa intergrating genotype, allele frequency and phenotype
 ## Description
 This repository maps insecticide resistance in Anopheles mosquitoes across Africa. It combines genotype data, phenotype (bioassay) outcomes, and allele-frequency measurements in a Bayesian hierarchical, semi-mechanistic framework to estimate resistance and susceptibility through space and time with quantified uncertainty.
-The single locus version of this model could be found in https://github.com/idem-lab/ir_cube designed (Golding).
+The single locus version of this model could be found in https://github.com/idem-lab/ir_cube designed ([Golding](https://github.com/goldingn)).
 
 <img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/40b4dc8b-2a20-41aa-9ed8-8f4d74de6fc8" />
 
