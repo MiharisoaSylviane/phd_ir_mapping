@@ -12,7 +12,7 @@ The single locus version of this model could be found in https://github.com/idem
   - Population density, (~timeframe to identify)(WorldPop/MAP; UN-adjusted 2021–2030)
   - pesticide use (~timeframe and source to identify)
  
-> Exact file paths and schemas will be documented in `configs/` as the code stabilizes.
+> Exact file paths and schemas will be documented as the code stabilizes.
 
 ## Notation
 We will develop and add notation through times of coding
