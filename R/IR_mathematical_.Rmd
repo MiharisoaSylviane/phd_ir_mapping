@@ -65,16 +65,14 @@ $$
 
 ### Computing phenotype and genotype frequencies:
 ### Computing phenotype frequencies:
-Computing $Q*$ (fraction of susceptible mosquitoes in the whole population). The fraction of mosquitoes susceptible Q\*, the average of the the phenotype representing the died mosquitoes in this location, at time t, with an insecticide will be compute by the following way : $$
+Computing $Q^{*}$ (fraction of susceptible mosquitoes in the whole population). The fraction of mosquitoes susceptible $Q^{*}$, the average of the the phenotype representing the died mosquitoes in this location, at time t, with an insecticide will be compute by the following way : $$
 P_{l,t,c}^{*} = \sum_{g=1}^{n^{3}} U_{g,c} Z_{g,l,t}
 $$ 
 where $U_{g,c}$ is a vector that contains the population that
 carrying the phenotype of this genotype,and compute in the way following:
 $$ U_{g,c} = v_{c}^{s} \prod_{lo=1}^{n} u_{g,lo,c}$$
 $$v_{c} \sim Uniform(0,1)$$ 
-$v_{c}^{s}$ is a parameter that belonging between 0 and 1, and represent the probability of dying for the wild type phenotype for an insecticide type. 
-
-This $u_{g,lo,c}$ intends to encode how the local genotype at locus lo (left/right allele states summarized by indicators $L_(g,lo)$for SS and $R_(g,lo)$ for RR) changes mortality under insecticideclass c. The parameter  $$\theta_{lo,c} \sim Uniform(0,1)$$ is a locus-specific resistance strength (how much the locus reduces mortality), and $h_{lo}$ ∈ [0,1] is dominance (fraction of the RR effect expressed in heterozygotes)
+$v_{c}^{s}$ is a parameter that belonging between 0 and 1, and represent the probability of dying for the wild type phenotype for an insecticide type.This $u_{g,lo,c}$ intends to encode how the local genotype at locus lo (left/right allele states summarized by indicators $L_(g,lo)$for SS and $R_(g,lo)$ for RR) changes mortality under insecticideclass c. The parameter  $$\theta_{lo,c} \sim Uniform(0,1)$$ is a locus-specific resistance strength (how much the locus reduces mortality), and $h_{lo}$ ∈ [0,1] is dominance (fraction of the RR effect expressed in heterozygotes)
 So we have 
 $$u_{g,lo,c} = R_{g,lo} + (\theta_{lo,c}) (1-L_{g,lo}) + (h \theta_{g,lo,c}) + (1-h_{lo}) (L_{g,lo} - R_{g,lo})$$
 ### Computing the genotype frequencies
@@ -82,18 +80,21 @@ We construct the multilocus genotype frequency $Z_{g,lo,t}$ as the product of pe
 $$Z_{g,t} = \prod_{l=1}^{n} F_{g,lo,t}
 $$
 Let $P_{lo,t}$ denote the frequency of allele resistant at locus lo at time t (so $1-P_{lo,t}$ is the frequency of allele S). For each multilocus genotype g and locus lo, define left and right allele indicator dummy matrices L and R (S =1, R=0). The per-locus probability that matches the genotype of g is 
-$$F_{g,lo,t} = (1-P_{lo,t})L_{g,lo} + P_{lo,t} (1-L_{g,lo}) *
-(1-P_{lo,t})R_{g,lo} + P_{lo,t} (1-R_{g,lo})
+$$F_{g,lo,t} = (1 - P_{lo, t})L_{g, lo} + P_{lo, t} (1 - L_{g, lo}) *
+(1 - P_{lo, t})R_{g, lo} + P_{lo, t} (1 - R_{g, lo}) * (1 + L_{g, lo} - R_{g, lo})
 $$
-### Computing the frequency of the genotype at the next
-To model the multilocus genotype frequency at time point t+1 i  
+### Computing the frequency of the genotype at the next time series
+The genotype will be updated by normalization. At each time step we form an unnormalized genotype mass by multiplying the genotype prior (from allele frequencies) with its multilocus fitness. Concretely, with $$G_{g,lo,t} = 3^{B}$$  genotypes over $B$ loci, so $$G_{g,lo,t} = 1 * R_{g, lo} + w_{lo} * (1 - L_{g, lo}) + 
+        (w_{lo} * h_{lo} + 1 - h_{lo}) (L_{g, lo} - R_{g, lo})
+        $$
+The prior for genotype gat time tis $Z_{g,t}$ (product of locus-wise left/right allele probabilities, accounting for the $SR$ duplicate via $1+L-R$); the genotype fitness is $$r_{g,t} = \prod_{lo}^{n} G_{g,lo,t}$$ )
+The unnormalized next-step mass is $$Z_{g,t+1}^{*} = Z_{g,t} * r_{g,t}$$
+We then normalize across genotypes, $$Z_{g,t+1} = Z_{g,t+1}^{*}/ \sum_{g=1}^{n^{3}} Z_{g,t+1}^{*}
+$$ to obtain a valid probability distribution that sums to 1.
 
-
-
-
-
-
-
+### Update the multilocus allele frequency
+For each locus $lo$, we compute the next-step resistant-allele frequency as the posterior-weighted average number of resistant alleles per diploid, divided by 2. Concretely, $Z_{g,t+1}$ is the normalized posterior probability of genotype $g$ at time $t+1$ (so $\∑_{g} Z_{g, t+1}=1$), and $L_{g,lo}$,$R_{g,lo}∈{0,1}$ encode the left and right alleles at that locus with $1 = susceptible (S)$ and $0 = resistant (R)$. Thus, $1 - L_{g,lo}$ is an indicator that the left allele is resistant, and $(1 - R_{g,lo})$ indicates the right allele is resistant. The quantity $(1 - L_{g,lo})+(1 - R_{g,lo})$. Averaging this count across genotypes with weights $Z_{g,t+1}$ gives the expected number of resistant alleles per individual at that locus; dividing by 2 converts this expected count (out of two alleles) into a frequency:
+ $$P_{lo, t+1}^{*} = 1/2  \sum_{g=1}^{n^{3}} Z_{g, t+1} (2 - L_{g, lo} - R_{g, lo})$$
 
 
 
@@ -116,17 +117,7 @@ $r_{g,t,l}$, from $G_{g,lo,t,l}$, from $w_{t,lo,l}$ and $h_{lo}$
 but you don't need to redefine how to calculate $z_{t,g,l}$ from
 $p_{t,lo,l}$ as you have already defined that above \>
 
-To simulate and determine the change of frequencies of genotype and
-phenotype in one population. This model will use an Bayesian
-hierarchical semi-mechanistic as described in the IR CUBE model
-(Golding, 202?). With a determination of the inital fraction of
-susceptible alleles in one loci at time point t in the population
-$P_{lo, t}$, to understand the trait of evolution, in which and where
-the mosquitoes are collected. And we will determine the $P_{lo, t+1}$,
-the allele frequency at the next step. To get the allele frequency
-$P_{lo, t+1}$, we need first to determine the genotype frequencies at
-time point t. We assume that there is no desequilibrum linkage, we
-define then variables which is the frequency of genotype g at time t,
+ which is the frequency of genotype g at time t,
 $Z_{g,t}$
 
 Covariate model for single locus genotype relative fitness:
@@ -163,4 +154,4 @@ equivalent to
 $$                  P_{t}^{*} = Pr(RR)_{lo} + h*Pr(RS)_{lo} $$ So if we
 define that in Z (genotype frequency) with two indicators
 
-$$P_{lo, t}^{*} = 1/2 \sum_{g=1}^n Z_{g, t-1}(1-L_{glo})+(1-R_{glo})$$
+

@@ -441,10 +441,9 @@ that contains the population that carrying the phenotype of this
 genotype,and compute in the way following: <span class="math display">\[
 U_{g,c} = v_{c}^{s} \prod_{lo=1}^{n} u_{g,lo,c}\]</span> <span class="math display">\[v_{c} \sim Uniform(0,1)\]</span> <span class="math inline">\(v_{c}^{s}\)</span> is a parameter that belonging
 between 0 and 1, and represent the probability of dying for the wild
-type phenotype for an insecticide type.</p>
-<p>This <span class="math inline">\(u_{g,lo,c}\)</span> intends to
-encode how the local genotype at locus lo (left/right allele states
-summarized by indicators <span class="math inline">\(L_(g,lo)\)</span>for SS and <span class="math inline">\(R_(g,lo)\)</span> for RR) changes mortality under
+type phenotype for an insecticide type.This <span class="math inline">\(u_{g,lo,c}\)</span> intends to encode how the
+local genotype at locus lo (left/right allele states summarized by
+indicators <span class="math inline">\(L_(g,lo)\)</span>for SS and <span class="math inline">\(R_(g,lo)\)</span> for RR) changes mortality under
 insecticideclass c. The parameter <span class="math display">\[\theta_{lo,c} \sim Uniform(0,1)\]</span> is a
 locus-specific resistance strength (how much the locus reduces
 mortality), and <span class="math inline">\(h_{lo}\)</span> ∈ [0,1] is
@@ -460,11 +459,42 @@ F_{g,lo,t}
 frequency of allele resistant at locus lo at time t (so <span class="math inline">\(1-P_{lo,t}\)</span> is the frequency of allele S).
 For each multilocus genotype g and locus lo, define left and right
 allele indicator dummy matrices L and R (S =1, R=0). The per-locus
-probability that matches the genotype of g is <span class="math display">\[F_{g,lo,t} = (1-P_{lo,t})L_{g,lo} + P_{lo,t}
-(1-L_{g,lo}) *
-(1-P_{lo,t})R_{g,lo} + P_{lo,t} (1-R_{g,lo})
-\]</span> ### Computing the frequency of the genotype at the next To
-model the multilocus genotype frequency at time point t+1 is</p>
+probability that matches the genotype of g is <span class="math display">\[F_{g,lo,t} = (1 - P_{lo, t})L_{g, lo} + P_{lo, t}
+(1 - L_{g, lo}) *
+(1 - P_{lo, t})R_{g, lo} + P_{lo, t} (1 - R_{g, lo}) * (1 + L_{g, lo} -
+R_{g, lo})
+\]</span> ### Computing the frequency of the genotype at the next time
+series The genotype will be updated by normalization. At each time step
+we form an unnormalized genotype mass by multiplying the genotype prior
+(from allele frequencies) with its multilocus fitness. Concretely, with
+<span class="math display">\[G_{g,lo,t} = 3^{B}\]</span> genotypes over
+<span class="math inline">\(B\)</span> loci, so <span class="math display">\[G_{g,lo,t} = 1 * R_{g, lo} + w_{lo} * (1 - L_{g,
+lo}) +
+        (w_{lo} * h_{lo} + 1 - h_{lo}) (L_{g, lo} - R_{g, lo})
+        \]</span> The prior for genotype gat time tis <span class="math inline">\(Z_{g,t}\)</span> (product of locus-wise left/right
+allele probabilities, accounting for the <span class="math inline">\(SR\)</span> duplicate via <span class="math inline">\(1+L-R\)</span>); the genotype fitness is <span class="math display">\[r_{g,t} = \prod_{lo}^{n} G_{g,lo,t}\]</span> )
+The unnormalized next-step mass is <span class="math display">\[Z_{g,t+1}^{*} = Z_{g,t} * r_{g,t}\]</span> We
+then normalize across genotypes, <span class="math display">\[Z_{g,t+1}
+= Z_{g,t+1}^{*}/ \sum_{g=1}^{n^{3}} Z_{g,t+1}^{*}
+\]</span> to obtain a valid probability distribution that sums to 1.</p>
+</div>
+<div id="update-the-multilocus-phenotype-frequency" class="section level3">
+<h3>Update the multilocus phenotype frequency</h3>
+<p>For each locus <span class="math inline">\(lo\)</span>, we compute
+the next-step resistant-allele frequency as the posterior-weighted
+average number of resistant alleles per diploid, divided by 2.
+Concretely, <span class="math inline">\(Z_{g,t+1}\)</span> is the
+normalized posterior probability of genotype <span class="math inline">\(g\)</span> at time <span class="math inline">\(t+1\)</span> (so <span class="math inline">\(\∑_{g} Z_{g, t+1}=1\)</span>), and <span class="math inline">\(L_{g,lo}\)</span>,<span class="math inline">\(R_{g,lo}∈{0,1}\)</span> encode the left and right
+alleles at that locus with <span class="math inline">\(1 = susceptible
+(S)\)</span> and <span class="math inline">\(0 = resistant (R)\)</span>.
+Thus, <span class="math inline">\(1 - L_{g,lo}\)</span> is an indicator
+that the left allele is resistant, and <span class="math inline">\((1 -
+R_{g,lo})\)</span> indicates the right allele is resistant. The quantity
+<span class="math inline">\((1 - L_(g,lo))+(1 - R_(g,lo))\)</span>.
+Averaging this count across genotypes with weights <span class="math inline">\(Z_{g,t+1}\)</span> gives the expected number of
+resistant alleles per individual at that locus; dividing by 2 converts
+this expected count (out of two alleles) into a frequency: <span class="math display">\[P_{lo, t+1}^{*} = 1/2  \sum_{g=1}^{n^{3}} Z_{g,
+t+1} (2 - L_{g, lo} - R_{g, lo})\]</span></p>
 <p>&lt;Sylviane to define how we compute <span class="math inline">\(Q*\)</span> (via <span class="math inline">\(P*\)</span>) from Z, and how we compute Z from
 p&gt;</p>
 <p>Allele selection process model:</p>
@@ -507,8 +537,6 @@ gamete in the genotype <span class="math inline">\(S=1\)</span>, <span class="ma
 locus lo)\]</span> which is equivalent to <span class="math display">\[                  P_{t}^{*} = Pr(RR)_{lo} +
 h*Pr(RS)_{lo} \]</span> So if we define that in Z (genotype frequency)
 with two indicators</p>
-<p><span class="math display">\[P_{lo, t}^{*} = 1/2 \sum_{g=1}^n Z_{g,
-t-1}(1-L_{glo})+(1-R_{glo})\]</span></p>
 </div>
 </div>
 </div>

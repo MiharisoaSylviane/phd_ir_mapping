@@ -3,10 +3,10 @@ set.seed(123)
 ## Prior
 # p is the initial allele frequency
 
-n_loci <- 2
+n_loci <- 4
 # call the dummy function
 source("C:/Users/Sylviane/Desktop/training_perth_2024/phd_ir_mapping/R/create_dummy_matrices.R")
-genotype_combination <- create_dummy_matrices(n_loci=2)
+genotype_combination <- create_dummy_matrices(n_loci)
 # defining the matrix name for the hand of genotype
 L <- genotype_combination$left
 L
@@ -84,8 +84,8 @@ probability_genotype_fast <- function(p){
   z
 }
 ## to test our function
-test <- probability_genotype_fast(p)
-test
+z <- probability_genotype_fast(p)
+z
 
 # SELECTION PRESSURE AND RELATIVE FITNESS AT LOCUS LEVEL 
 ## define the covariates X with number K
@@ -121,7 +121,7 @@ for(lo in seq_len(B)) {
 # w <- 1 + st
 
 
-
+h <- runif(B, 0, 1)
 # GENOTYPE FREQUENCY AT NEXT STEP
 ## step to get the genotype frequency at next step without using time series
 polygenic_multilocus_next_step <- function(w, h){
@@ -149,9 +149,9 @@ polygenic_multilocus_next_step <- function(w, h){
   post   <- unpost / sum(unpost)
   
   list(Gw = Gw,
-       r = matrix(r_vec,  nrow = G, ncol = 1),
+       r = matrix(r_vec, nrow = G, ncol = 1),
        post_next = matrix(post, nrow = G, ncol = 1),
-       z = matrix(z,     nrow = G, ncol = 1))
+       z = matrix(z, nrow = G, ncol = 1))
 }
 # To test our function returning values
 test1 <- polygenic_multilocus_next_step(w, h)
@@ -185,20 +185,30 @@ probability_genotype_fast_t <- function(p_t){
 
 # run over time
 for (t in 1:T) {
-  p_t <- runif(B, 0, 1)           
+  p_t <- runif(B, 0, 1)
+  # define the allele frequency over time
   p_series[, t] <- p_t           
-  
+  # and define new matrix by adding t as indice
   out <- probability_genotype_fast_t(p_t)
   F_arr[, , t] <- out$F
   z_mat[, t]   <- out$z
 }
- # check our z
+ # check our z across tine
 z_sums <- colSums(z_mat)
 
-
-
-
-
+# to summary our results in depend of times, we will use the tranpose function t()
+# to change the matrix 
+# allele frequency P (T * B)
+P_all <- t(p_series)
+colnames(P_all) <- paste0("locus_", seq_len(ncol(P_all)))
+rownames(P_all) <- paste0("t_", seq_len(nrow(P_all)))
+P_all
+# genotype frequency Z (T * G)
+Z_all <- t(z_mat)   
+colnames(Z_all) <- paste0("geno_", seq_len(ncol(Z_all)))
+rownames(Z_all) <- paste0("t_", seq_len(nrow(Z_all)))
+Z_all
+ 
 
 
 
