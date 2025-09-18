@@ -34,7 +34,7 @@ The mathematic path describing the model is in https://github.com/MiharisoaSylvi
 
 ## Simulation code matching the math by using others packages
 Checking if the code is producing the expected results
-### Estimating the parameters used by running the model by fake real data
+# Minimal reproducible code
 ````
 prob_left <- L*(1-P_t) + (1-L)*P_t
 prob_right <- R*(1-P_t) + (1-R)*P_t
@@ -50,6 +50,7 @@ Z_star <- z_t * r_t; Z_next <- Z_star / sum(Z_star)
 P_next <- 0.5 * colSums( Z_next * (1 - L) + Z_next * (1 - R) )
 
 ````
+### Estimating the parameters used by running the model by fake real data
 ## Greta version of the code
 Produce a greta version syntax of the simulation code
 
