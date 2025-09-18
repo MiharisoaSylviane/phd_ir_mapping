@@ -26,7 +26,7 @@ We will develop and add notation through times of coding
 - \(Z_{g,l,t}\): population fraction of genotype \(g\) at \((l,t)\)
 - \(U_{g,c}\in[0,1]\): susceptibility (prob. death) of genotype \(g\) under insecticide class \(c\)
 - Population susceptibility: $$\(Q^*_{l,t,c}=\sum_{g} U_{g,c}\, Z_{g,l,t}\)$$
-
+> Let $B$ be the number of loci, $G=3^{B}$ the number of multilocus genotypes retained ($SS$, $SR$, $RR$ per locus; RS duplicates removed). Index genotypes by $g ∈ {1,…,G}$, loci by $lo ∈ {1,…,B}$, time by t.
 # Road Map
 ## Defining the mathematical process
 The mathematic path describing the model is in https://github.com/MiharisoaSylviane/phd_ir_mapping/tree/main/Model_description, IR_draft.Rmd
@@ -41,7 +41,21 @@ Produce a greta version syntax of the simulation code
 > Check: The goal is to assess the similarity of the results in a given parameters, assumptions and scenarios and data
 ## Fit greta version on the real data
 ### Simulation estimation study 
-estimating the parameters used by running the model by fake real data
+Minimal reproducting code
+### Estimating the parameters used by running the model by fake real data
+prob_left <- L*(1-P_t) + (1-L)*P_t
+prob_right <- R*(1-P_t) + (1-R)*P_t
+F <- prob_left * prob_right * (1 + L - R)
+Z_prior <- apply(F, 1, prod); z_t <- Z_prior / sum(Z_prior)
+# Fitness (per locus):
+SS <- (L==1) & (R==1); RR <- (L==0) & (R==0); SR <- (L==1) & (R==0)
+G_loc <- 1*SS + w*RR + (h*w + (1-h))*SR
+r_t <- apply(G_loc, 1, prod)
+# Update genotype distribution:
+Z_star <- z_t * r_t; Z_next <- Z_star / sum(Z_star)
+# Update allele frequency per locus:
+P_next <- 0.5 * colSums( Z_next * (1 - L) + Z_next * (1 - R) )
+
 ### Confirmation with real data
 
 
