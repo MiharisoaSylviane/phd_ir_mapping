@@ -1,3 +1,4 @@
+##### 
 set.seed(123)
 ## Prior
 # p is the initial allele frequency
@@ -6,7 +7,7 @@ n_loci <- 2
 # call the dummy function
 source("C:/Users/Sylviane/Desktop/training_perth_2024/phd_ir_mapping/R/create_dummy_matrices.R")
 genotype_combination <- create_dummy_matrices(n_loci=2)
-
+# defining the matrix name for the hand of genotype
 L <- genotype_combination$left
 L
 R <- genotype_combination$right
@@ -17,8 +18,10 @@ L[3, 2]
 # sweep(x, MARGIN, STATS, FUN) : it allows Sylviane to operate value in matrix,
 # x= matrix name, margin = to perform on Row = 1, on column =2, stats = the value
 # to use (formula), function is the * or / or +, 
-## per-locus probability that matches the genotype of g 
-probability_genotype <- function(p){
+# I- NO TIMESERIES
+# PERLOCUS PROBABILITY THAT MATCHES THE GENOTYPES 
+### 1- First way
+# probability_genotype <- function(p){
   G <- nrow(L)
   B <- ncol(L)
   if(length(p) != B){stop("locus probability dimension mismatch")}
@@ -40,10 +43,10 @@ probability_genotype <- function(p){
   }
   z[g] <- prod(F[g, ])
 }
-p <- runif(B)
+# p <- runif(B)
 
-### fast way to get genotype perlocus
-probability_genotype_fast <- function(p){
+### 2- Second way : fast way to get genotype perlocus
+# probability_genotype_fast <- function(p){
   G <- nrow(L)
   B <- ncol(L)
   if(length(p) != B){stop("locus probability dimension mismatch")}
@@ -63,10 +66,9 @@ probability_genotype_fast <- function(p){
   return(z) 
 }
 
-
+### 3- Third way
 # p : allele frequency at each locus 
 p <- runif(B) 
-# genotype frequency as p is a matrix and returning a vector z
 probability_genotype_fast <- function(p){
   stopifnot(is.matrix(L), is.matrix(R), all(dim(L) == dim(R)))
   G <- nrow(L); B <- ncol(L)
@@ -74,46 +76,24 @@ probability_genotype_fast <- function(p){
   
   prob_left  <- sweep(L, 2, 1 - p, "*") + sweep(1 - L, 2, p, "*")
   prob_right <- sweep(R, 2, 1 - p, "*") + sweep(1 - R, 2, p, "*")
-  dup <- 1 + L - R   # =2 pour (1,0), =1 sinon
+  dup <- 1 + L - R   
   
   F <- prob_left * prob_right * dup
   z_unnorm <- apply(F, 1, prod)
-  z <- z_unnorm / sum(z_unnorm)  # vecteur longueur G
+  z <- z_unnorm / sum(z_unnorm)  
   z
 }
-# to test our function
+## to test our function
 test <- probability_genotype_fast(p)
 test
 
-## selection at locus level
-## the effect of intervention 
+# SELECTION PRESSURE AND RELATIVE FITNESS AT LOCUS LEVEL 
+## define the covariates X with number K
 K <- 4
-probability_genotype_fast <- function(p){
-  G <- nrow(L); B <- ncol(L)
-  if (length(p) != B) stop("locus probability dimension mismatch")
-  
-  # proba d'observer l'allèle encodé en L et R (colonne par colonne)
-  prob_left  <- sweep(L, 2, 1 - p, "*") + sweep(1 - L, 2, p, "*")  # L==1 -> 1-p ; L==0 -> p
-  prob_right <- sweep(R, 2, 1 - p, "*") + sweep(1 - R, 2, p, "*")  # R==1 -> 1-p ; R==0 -> p
-  
-  # facteur de doublon (2 pour hétérozygote gardé (1,0), 1 sinon)
-  dup <- 1 + L - R
-  
-  # probabilité par locus, puis produit sur les loci -> masse par génotype (ligne)
-  F <- prob_left * prob_right * dup
-  z_unnorm <- apply(F, 1, prod)     # <- longueur G (une par combinaison L/R)
-  
-  # normalisation -> vecteur de proba
-  s <- sum(z_unnorm)
-  if (!is.finite(s) || s == 0) stop("Somme nulle/non-finie pour z; vérifiez L/R/p")
-  z <- z_unnorm / s
-  return(z)                          # <-- VECTEUR longueur G
-}
-
-# Xn <- c(0.1, 0.2,0.3,0.4)
 X <- runif(K)
-betamat <- matrix(rnorm(B * K), nrow=B, ncol=K)
+betamat <- matrix(rnorm(B * K), nrow= B, ncol= K)
 gammax <- exp(betamat)
+## selection pressure and relative fitness
 s <- rep(0, B)
 w <- rep(NA, B)
 for(lo in seq_len(B)) {
@@ -142,8 +122,8 @@ for(lo in seq_len(B)) {
 
 
 
-## GENOTYPE NEXT STEP
-# step to get the genotype frequency at next step without using time series
+# GENOTYPE FREQUENCY AT NEXT STEP
+## step to get the genotype frequency at next step without using time series
 polygenic_multilocus_next_step <- function(w, h){
   stopifnot(is.matrix(L), is.matrix(R), all(dim(L) == dim(R)))
  # define G and B 
@@ -173,6 +153,47 @@ polygenic_multilocus_next_step <- function(w, h){
        post_next = matrix(post, nrow = G, ncol = 1),
        z = matrix(z,     nrow = G, ncol = 1))
 }
+# To test our function returning values
+test1 <- polygenic_multilocus_next_step(w, h)
+test1
+
+# II - WITH TIMESERIES
+# known variables
+G <- nrow(L);
+B <- ncol(L)
+T <- 10
+
+# storage
+F_arr <- array(NA_real_, dim = c(G, B, T))  
+z_mat <- matrix(NA_real_, nrow = G, ncol = T)  
+p_series <- matrix(NA_real_, nrow = B, ncol = T)  
+
+probability_genotype_fast_t <- function(p_t){
+  stopifnot(is.matrix(L), is.matrix(R), all(dim(L) == dim(R)))
+  G <- nrow(L); B <- ncol(L); stopifnot(length(p_t) == B)
+  
+  prob_left  <- sweep(L, 2, 1 - p_t, "*") + sweep(1 - L, 2, p_t, "*")
+  prob_right <- sweep(R, 2, 1 - p_t, "*") + sweep(1 - R, 2, p_t, "*")
+  dup <- 1 + L - R                     #
+  
+  F_t <- prob_left * prob_right * dup  
+  z_u <- apply(F_t, 1, prod)          
+  s <- sum(z_u)
+  z_t <- z_u / s
+  list(F = F_t, z = z_t)
+}
+
+# run over time
+for (t in 1:T) {
+  p_t <- runif(B, 0, 1)           
+  p_series[, t] <- p_t           
+  
+  out <- probability_genotype_fast_t(p_t)
+  F_arr[, , t] <- out$F
+  z_mat[, t]   <- out$z
+}
+ # check our z
+z_sums <- colSums(z_mat)
 
 
 
