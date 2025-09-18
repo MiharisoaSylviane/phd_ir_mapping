@@ -42,7 +42,7 @@ Produce a greta version syntax of the simulation code
 ## Fit greta version on the real data
 ### Simulation estimation study 
 estimating the parameters used by running the model by fake real data
-### confirming on real data
+### Confirmation with real data
 
 
 
