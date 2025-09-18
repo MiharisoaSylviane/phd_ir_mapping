@@ -34,14 +34,6 @@ The mathematic path describing the model is in https://github.com/MiharisoaSylvi
 
 ## Simulation code matching the math by using others packages
 Checking if the code is producing the expected results
-In this step, we will   
-## Greta version of the code
-Produce a greta version syntax of the simulation code
-
-> Check: The goal is to assess the similarity of the results in a given parameters, assumptions and scenarios and data
-## Fit greta version on the real data
-### Simulation estimation study 
-Minimal reproducting code
 ### Estimating the parameters used by running the model by fake real data
 prob_left <- L*(1-P_t) + (1-L)*P_t
 prob_right <- R*(1-P_t) + (1-R)*P_t
@@ -54,7 +46,15 @@ r_t <- apply(G_loc, 1, prod)
 # Update genotype distribution:
 Z_star <- z_t * r_t; Z_next <- Z_star / sum(Z_star)
 # Update allele frequency per locus:
-P_next <- 0.5 * colSums( Z_next * (1 - L) + Z_next * (1 - R) )
+P_next <- 0.5 * colSums( Z_next * (1 - L) + Z_next * (1 - R) )  
+## Greta version of the code
+Produce a greta version syntax of the simulation code
+
+> Check: The goal is to assess the similarity of the results in a given parameters, assumptions and scenarios and data
+## Fit greta version on the real data
+### Simulation estimation study 
+Minimal reproducting code
+
 
 ### Confirmation with real data
 
