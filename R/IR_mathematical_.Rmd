@@ -93,9 +93,10 @@ We then normalize across genotypes, $$Z_{g,t+1} = Z_{g,t+1}^{*}/ \sum_{g=1}^{n^{
 $$ to obtain a valid probability distribution that sums to 1.
 
 ### Update the multilocus allele frequency
-For each locus $lo$, we compute the next-step resistant-allele frequency as the posterior-weighted average number of resistant alleles per diploid, divided by 2. Concretely, $Z_{g,t+1}$ is the normalized posterior probability of genotype $g$ at time $t+1$ (so $\∑_{g} Z_{g, t+1}=1$), and $L_{g,lo}$,$R_{g,lo}∈{0,1}$ encode the left and right alleles at that locus with $1 = susceptible (S)$ and $0 = resistant (R)$. Thus, $1 - L_{g,lo}$ is an indicator that the left allele is resistant, and $(1 - R_{g,lo})$ indicates the right allele is resistant. The quantity $(1 - L_{g,lo})+(1 - R_{g,lo})$. Averaging this count across genotypes with weights $Z_{g,t+1}$ gives the expected number of resistant alleles per individual at that locus; dividing by 2 converts this expected count (out of two alleles) into a frequency:
- $$P_{lo, t+1}^{*} = 1/2  \sum_{g=1}^{n^{3}} Z_{g, t+1} (2 - L_{g, lo} - R_{g, lo})$$
+For each locus $lo$, we compute the next-step resistant-allele frequency as the posterior-weighted average number of resistant alleles per diploid, divided by 2. Concretely, $Z_{g,t+1}$ is the normalized posterior probability of genotype $g$ at time $t+1$ (so $\sum_{g} Z_{g, t+1}=1$), and $L_{g,lo}$,$R_{g,lo}∈{0,1}$ encode the left and right alleles at that locus with $1 = susceptible (S)$ and $0 = resistant (R)$. Thus, $1 - L_{g,lo}$ is an indicator that the left allele is resistant, and $(1 - R_{g,lo})$ indicates the right allele is resistant. The quantity $(1 - L_{g,lo})+(1 - R_{g,lo})$. Averaging this count across genotypes with weights $Z_{g,t+1}$ gives the expected number of resistant alleles per individual at that locus; dividing by 2 converts this expected count (out of two alleles) into a frequency:
+ $$P_{lo, t+1} = 1/2  \sum_{g=1}^{n^{3}} Z_{g, t+1} (2 - L_{g, lo} - R_{g, lo})$$
 
+### Covariates
 
 
 

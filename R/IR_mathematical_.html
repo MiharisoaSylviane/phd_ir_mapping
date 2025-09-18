@@ -430,11 +430,12 @@ N_{lo,t}^{a} \sim Betabinomial (N^{a}, P_lo, \rho_{a})
 </div>
 <div id="computing-phenotype-frequencies" class="section level3">
 <h3>Computing phenotype frequencies:</h3>
-<p>Computing <span class="math inline">\(Q*\)</span> (fraction of
+<p>Computing <span class="math inline">\(Q^{*}\)</span> (fraction of
 susceptible mosquitoes in the whole population). The fraction of
-mosquitoes susceptible Q*, the average of the the phenotype representing
-the died mosquitoes in this location, at time t, with an insecticide
-will be compute by the following way : <span class="math display">\[
+mosquitoes susceptible <span class="math inline">\(Q^{*}\)</span>, the
+average of the the phenotype representing the died mosquitoes in this
+location, at time t, with an insecticide will be compute by the
+following way : <span class="math display">\[
 P_{l,t,c}^{*} = \sum_{g=1}^{n^{3}} U_{g,c} Z_{g,l,t}
 \]</span> where <span class="math inline">\(U_{g,c}\)</span> is a vector
 that contains the population that carrying the phenotype of this
@@ -478,8 +479,8 @@ then normalize across genotypes, <span class="math display">\[Z_{g,t+1}
 = Z_{g,t+1}^{*}/ \sum_{g=1}^{n^{3}} Z_{g,t+1}^{*}
 \]</span> to obtain a valid probability distribution that sums to 1.</p>
 </div>
-<div id="update-the-multilocus-phenotype-frequency" class="section level3">
-<h3>Update the multilocus phenotype frequency</h3>
+<div id="update-the-multilocus-allele-frequency" class="section level3">
+<h3>Update the multilocus allele frequency</h3>
 <p>For each locus <span class="math inline">\(lo\)</span>, we compute
 the next-step resistant-allele frequency as the posterior-weighted
 average number of resistant alleles per diploid, divided by 2.
@@ -490,11 +491,11 @@ alleles at that locus with <span class="math inline">\(1 = susceptible
 Thus, <span class="math inline">\(1 - L_{g,lo}\)</span> is an indicator
 that the left allele is resistant, and <span class="math inline">\((1 -
 R_{g,lo})\)</span> indicates the right allele is resistant. The quantity
-<span class="math inline">\((1 - L_(g,lo))+(1 - R_(g,lo))\)</span>.
+<span class="math inline">\((1 - L_{g,lo})+(1 - R_{g,lo})\)</span>.
 Averaging this count across genotypes with weights <span class="math inline">\(Z_{g,t+1}\)</span> gives the expected number of
 resistant alleles per individual at that locus; dividing by 2 converts
-this expected count (out of two alleles) into a frequency: <span class="math display">\[P_{lo, t+1}^{*} = 1/2  \sum_{g=1}^{n^{3}} Z_{g,
-t+1} (2 - L_{g, lo} - R_{g, lo})\]</span></p>
+this expected count (out of two alleles) into a frequency: <span class="math display">\[P_{lo, t+1} = 1/2  \sum_{g=1}^{n^{3}} Z_{g, t+1}
+(2 - L_{g, lo} - R_{g, lo})\]</span></p>
 <p>&lt;Sylviane to define how we compute <span class="math inline">\(Q*\)</span> (via <span class="math inline">\(P*\)</span>) from Z, and how we compute Z from
 p&gt;</p>
 <p>Allele selection process model:</p>
@@ -504,17 +505,7 @@ l}\)</span> from <span class="math inline">\(z_{t,g,l}\)</span>, via
 <span class="math inline">\(r_{g,t,l}\)</span>, from <span class="math inline">\(G_{g,lo,t,l}\)</span>, from <span class="math inline">\(w_{t,lo,l}\)</span> and <span class="math inline">\(h_{lo}\)</span></p>
 <p>but you don’t need to redefine how to calculate <span class="math inline">\(z_{t,g,l}\)</span> from <span class="math inline">\(p_{t,lo,l}\)</span> as you have already defined
 that above &gt;</p>
-<p>To simulate and determine the change of frequencies of genotype and
-phenotype in one population. This model will use an Bayesian
-hierarchical semi-mechanistic as described in the IR CUBE model
-(Golding, 202?). With a determination of the inital fraction of
-susceptible alleles in one loci at time point t in the population <span class="math inline">\(P_{lo, t}\)</span>, to understand the trait of
-evolution, in which and where the mosquitoes are collected. And we will
-determine the <span class="math inline">\(P_{lo, t+1}\)</span>, the
-allele frequency at the next step. To get the allele frequency <span class="math inline">\(P_{lo, t+1}\)</span>, we need first to determine
-the genotype frequencies at time point t. We assume that there is no
-desequilibrum linkage, we define then variables which is the frequency
-of genotype g at time t, <span class="math inline">\(Z_{g,t}\)</span></p>
+<p>which is the frequency of genotype g at time t, <span class="math inline">\(Z_{g,t}\)</span></p>
 <p>Covariate model for single locus genotype relative fitness:</p>
 <p>&lt;Sylviane to add in how we calculate <span class="math inline">\(w_{t, lo, l} = 1 + s_{t, lo, l}\)</span> &gt;</p>
 <p>We model the effect of itns (Xn) use on the frequency of genotype and
