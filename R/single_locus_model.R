@@ -2,6 +2,9 @@
 # for one insecticide resistance
 # load library
 library(greta)
+library(ggplot2)
+library(bayesplot)
+library(tidyverse)
 # library(tidyverse)
 # n<-100
 # data_template <- expand_grid(
@@ -30,8 +33,8 @@ library(greta)
 #     )
 #   )
 
-# time series
-time_series <- 10
+# covariates k
+x <- 10
 
 # itns_covariates <- seq(0.1, 0.9, length.out = time_series)
 intervention_times <- 4
@@ -334,37 +337,131 @@ sims <- calculate(gammax, p_resist,
                   values = list(p0 = 0.9))
 
 
+##### MUTATION 
+# Set random seed for reproducibility
+set.seed(123)
+
+# Simulated data for demonstration
+time_series <- 10 
+# ITN coverage data (covariate)
+itns_covariates<- c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0)
+
+
+# 1. PRIORS FOR MODEL PARAMETERS
+# coefficient of itns effect resistance
+# beta <- log(gammax)
+# 
+beta <- normal(0,1)
+# 
+gammax <- exp(beta)
+
+# Effect of ITN coverage on selection pressure
+#beta_itn <- normal(0, 1)
+#gamma_itn <- exp(beta_itn)  # Ensure positive effect
+
+# selection pressure
+st <- gammax*itns_covariates
+
+# # relative fitness of mosquitoes with allele resistant R/S
+w <- 1 + st
+
+# # relative fitness of gene mutant
+pmu_0<- uniform(0, 1)
+
+# probability of no getting mutation
+pmu<- zeros(time_series)
+pmu[1] <- pmu_0
+for (t in 1:(time_series-1)) {
+  pmu[t + 1] <- pmu[t]/ (pmu[t] + (1- pmu[t]) * (1-w[t]))
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# selection pressure 
-calculate_resistance_frequency <- function() {
-  # Initialize vector for susceptible allele frequencies
-  p_susc <- numeric(time_series)
-  p_susc[1] <- p0
-  
-  # Calculate fitness based on h
-  w <- case_when(
-    h  ==  0, w <- w,            
-    h <= 0.5 &  h >= 0.75, w <-  1 - (h * s),
-    h < 0.75, w <- 1 - s,          
-    TRUE ~ 1                                  
-  )
-
-
-binomial_likelihood <- function(x, n, p) {
-    choose(n, x) * p^x * (1-p)^(n-x)
 }
+
+pmu
+
+# simulate genotypic allele frequency data
+n_tested <- rep(100, time_series)
+n_mutant<- binomial(size = n_tested, prob = pmu)
+observed_frequency <- n_mutant / n_tested
+
+
+sim<- calculate(observed_frequency, pmu,nsim=1)
+sim
+
+# GENOTYPE
+# Initialize genotype frequency arrays
+freq_ss <- zeros(time_series)  
+freq_sr <- zeros(time_series)  
+freq_rr <- zeros(time_series)  
+
+# Initial genotype frequencies assuming Hardy-Weinberg equilibrium
+# The mutant probability (pmu) represents the frequency of the mutant allele
+freq_rr[1] <- pmu[1]^2       
+freq_sr[1] <- 2 * pmu[1] * (1 - pmu[1])  
+freq_ss[1] <- (1 - pmu[1])^2 
+h <- uniform(0,1)
+# Update genotype frequencies over time based on selection
+# Update genotype frequencies over time based on selection
+for (t in 1:(time_series - 1)) {
+  w_bar <- freq_ss[t] * 1 + freq_sr[t] *h* w[t] + freq_rr[t] * w[t]
+  freq_ss[t + 1] <- (freq_ss[t] * 1) / w_bar
+  freq_sr[t + 1] <- (freq_sr[t] * w[t]*h) / w_bar
+  freq_rr[t + 1] <- (freq_rr[t] * w[t]) / w_bar
+  mutation_rate <- 1e-4  # Small mutation rate
+  mutants_created <- mutation_rate * freq_ss[t + 1]
+  freq_ss[t + 1] <- freq_ss[t + 1] - mutants_created
+  freq_sr[t + 1] <- freq_sr[t + 1] + mutants_created
+}
+
+# PHENOTYPIC RESISTANCE MODEL
+# Both heterozygotes (mutants) and resistant homozygotes show resistance
+p_resist_pheno <- freq_sr + freq_rr
+
+# BINOMIAL OBSERVATION MODELS
+# Number of tested mosquitoes
+n_tested <- rep(100, time_series)
+
+# Observation of mutant mosquitoes (heterozygotes)
+n_mutant <- binomial(n_tested, freq_sr)
+
+# Factorial-based formulation
+n_sites <- 5  # Number of potential mutation sites
+k_threshold <- 2  # Minimum mutations needed for resistance
+
+p_resist <- zeros(time_series)
+for (t in 1:time_series) {
+  # Calculate probability of at least k mutations
+  p_at_least_k <- 0
+  for (k in k_threshold:n_sites) {
+    # Binomial coefficient: n! / (k! * (n-k)!)
+    binom_coef <- factorial(n_sites) / (factorial(k) * factorial(n_sites - k))
+    p_at_least_k <- p_at_least_k + binom_coef * (pmu[t])^k * (1 - pmu[t])^(n_sites - k)
+  }
+  p_resist[t] <- p_at_least_k
+}
+
+n_resistant <- binomial(n_tested, p_resist)
+observed_frequency <- n_resistant / n_tested
+
+# Define model
+model <- model(pmu_0, observed_frequency)
+
+# Inference
+draws <- mcmc(model, n_samples = 3000, warmup = 1000)
+
+# Simulation
+simulated <- calculate(p_resist, observed_frequency, nsim = 1000, 
+                       values = list(pmu_0 = 0.05, beta = 0.5))
+
+
+
+
+
+
+
+
+
+
+
+
+
 
