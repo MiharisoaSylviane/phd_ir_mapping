@@ -34,7 +34,7 @@ The mathematic path describing the model is in https://github.com/MiharisoaSylvi
 
 ## Simulation code matching the math by using others packages
 Checking if the code is producing the expected results
-# Minimal reproducible code
+#### Minimal reproducible code
 ````
 prob_left <- L*(1-P_t) + (1-L)*P_t
 prob_right <- R*(1-P_t) + (1-R)*P_t
