@@ -40,10 +40,16 @@ prob_left <- L*(1-P_t) + (1-L)*P_t
 prob_right <- R*(1-P_t) + (1-R)*P_t
 F <- prob_left * prob_right * (1 + L - R)
 Z_prior <- apply(F, 1, prod); z_t <- Z_prior / sum(Z_prior)
+````
+
+````
 #### Fitness (per locus):
 SS <- (L==1) & (R==1); RR <- (L==0) & (R==0); SR <- (L==1) & (R==0)
 G_loc <- 1*SS + w*RR + (h*w + (1-h))*SR
 r_t <- apply(G_loc, 1, prod)
+
+````
+````
 #### Update genotype distribution:
 Z_star <- z_t * r_t; Z_next <- Z_star / sum(Z_star)
 #### Update allele frequency per locus:
