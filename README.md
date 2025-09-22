@@ -56,7 +56,7 @@ Z_star <- z_t * r_t; Z_next <- Z_star / sum(Z_star)
 allele_from_Z <- function(Z_next, L, R) {
   G <- nrow(L); B <- ncol(L)
   stopifnot(length(Z_next) == G)
-  a_counts <- (1 - L) + (1 - R)             # G x B (0,1,2 resistant alleles)
+  a_counts <- (1 - L) + (1 - R)             # G x B ( resistant alleles)
   as.numeric(0.5 * (t(Z_next) %*% a_counts))   # length B
 }
 
