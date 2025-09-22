@@ -47,7 +47,13 @@ r_t <- apply(G_loc, 1, prod)
 #### Update genotype distribution:
 Z_star <- z_t * r_t; Z_next <- Z_star / sum(Z_star)
 #### Update allele frequency per locus:
-P_next <- 0.5 * colSums( Z_next * (1 - L) + Z_next * (1 - R) )
+allele_from_Z <- function(Z_next, L, R) {
+  G <- nrow(L); B <- ncol(L)
+  stopifnot(length(Z_next) == G)
+  a_counts <- (1 - L) + (1 - R)             # G x B (0,1,2 resistant alleles)
+  as.numeric(0.5 * (t(Z_next) %*% a_counts))   # length B
+}
+
 
 ````
 ### Estimating the parameters used by running the model by fake real data
