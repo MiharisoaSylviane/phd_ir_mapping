@@ -1,0 +1,103 @@
+---
+title: "research_proposal"
+author: "Sylviane MIHARISOA"
+date: "2025-10-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+# Introduction
+Long-lasting insecticide-treated nets (LLINs) and Residual Spraying Insecticide remain have been a central of malaria control across sub-Saharan Africa, consistently reducing human–vector contact and suppressing malaria transmission. 
+LLINS are long-acting control methods lasting up to three years, while IRS is applied annually (WHO, 2020). 
+
+
+Generally, because of their scalability, cost-effectiveness, and favourable safety profile have made LLINs the dominant prevention tool over the past two decades.
+
+For most of this period, pyrethroids were the only WHO-recommended active ingredient for LLINs, a constraint that simplified procurement and deployment but concentrated selective pressure on a single insecticide class. 
+
+As coverage expanded and usage intensified, resistance to pyrethroids rose rapidly and unevenly, creating sharp spatial and temporal gradients in susceptibility among major malaria vectors, generating pronounced spatial and temporal heterogeneity in susceptibility among major Anopheles vectors.
+
+Resistance in African Anopheles arises through multiple, often co-occurring mechanisms. Target-site mutations in the voltage-gated sodium channel (Vgsc), classically referred to as knockdown resistance (kdr), reduce pyrethroid binding and knockdown efficacy.
+
+Metabolic resistance, mediated by elevated cytochrome P450s, glutathione S-transferases, and esterases—can further enhance detoxification and survival following exposure. These mechanisms vary by species, region, and time, and their frequencies can shift quickly under changing intervention pressure. Indeed, indoor insecticide-based interventions—LLINs and indoor residual spraying (IRS)—often depress endophilic, anthropophilic vectors such as Anopheles gambiae/coluzzii more than the more exophagic Anopheles arabiensis, with measurable shifts in species proportions that can weaken the effectiveness of exclusively indoor tools and complicate routine entomological surveillance.
+
+
+Continental syntheses that integrate WHO bioassay outcomes with molecular surveillance (e.g., Vgsc genotype frequencies) reveal species-specific regional trends and heterogeneous resistance trajectories, underscoring the need for resistance-aware planning rather than one-size-fits-all strategies. Moreover, 
+because resistance alters both survival and behavior after contact with insecticide, it is expected to reshape local vector abundance and community composition. 
+
+Empirical studies have documented that indoor, pyrethroid-based interventions—LLINs and indoor residual spraying (IRS)—tend to depress indoor-biting, endophilic vectors such as Anopheles gambiae sensu stricto and Anopheles coluzzii more than the more exophagic and zoophilic Anopheles arabiensis. 
+
+# PROBLEM STATEMENT
+Despite increasing evidence of insecticide resistance in African malaria vectors, the spatial and temporal dynamics of multiple genetic resistance mechanisms remain poorly understood. Previous studies, such as those analyzing Vgsc-995S and Vgsc-995F mutations, focused on a single target-site gene, revealing geographically structured patterns and the influence of ITN coverage on allele frequencies (Hancock, 2022).
+However, insecticide resistance is often polygenic, involving multiple target-site and metabolic mechanisms that interact to influence species composition, and relative abundance under realistic intervention pressures. 
+On the other hand, 
+
+
+
+As a result, the relative contribution of An. arabiensis often increases where indoor intervention pressure is high or where resistance reduces indoor mortality. These shifts have practical consequences: they can change biting times and locations, diminish the impact of exclusively indoor tools, and complicate interpretation of routine entomological indicators (e.g., indoor resting densities, blood-feeding inhibition, and parity rates).
+
+
+Programmatically, the toolbox is expanding but remains limited. Pyrethroid-PBO (piperonyl butoxide) LLINs partially restore efficacy where oxidative metabolic resistance predominates, while newer dual-ingredient products (e.g., pyrethroid–chlorfenapyr, pyrethroid–pyriproxyfen) offer promising alternatives.
+
+And more, the duration of cluster-randomized trials assessing vector-control efficacy is generally considered too short to determine whether one insecticide resistance management strategy outperforms another.
+
+However, their optimal placement depends on local resistance profiles, coverage histories, and vector ecology. Without an explicit framework linking genotype-informed resistance to abundance responses under realistic deployment scenarios, it is difficult to prioritize products, time their rotations, or forecast downstream effects on transmission. 
+
+Mathematical modelling and computer simulations are valuable tools for comparing the long-term effectiveness and risks of different IRM strategies and for screening scenarios prior to field deployment. 
+
+Research justification
+
+
+
+
+
+
+
+Research objectives
+-	General objective 
+-	Specific objective
+
+Research questions
+
+
+
+Litterature review
+
+("modeling" OR "modelling" OR model*) AND (mosquito* OR Anopheles) AND ("insecticide resistance" OR "pyrethroid resistance" OR kdr OR vgsc OR "ace-1" OR "target-site" OR "metabolic resistance" OR P450 OR "cytochrome P450" OR "glutathione S-transferase" OR GST OR esteras* OR "cuticular resistance" OR "behavioral resistance")
+
+Research Methodology
+
+Research plan
+- schedule activities
+- research budget
+
+References
+
+Declaration
+
+
+
+
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
