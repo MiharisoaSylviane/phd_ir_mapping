@@ -1,4 +1,5 @@
 library(greta)
+library(MCMCpack) 
 ##### 
 set.seed(123)
 ## Prior
@@ -59,7 +60,7 @@ B <- ncol(L)
 #   prob_left <- sweep(L, 2, 1 - p, FUN = "*") +
 #     sweep(1 - L, 2, p, FUN = "*")
 # 
-#   prob_right <- sweep(R, 2, 1 - p, FUN = "*") +
+#   prob_right <- sweep(R, 2, 1 - p, FUN = "*") + 
 #     sweep(1 - R, 2, p, FUN = "*")
 # 
 #   heterozygote_duplicates <- 1 + L - R
@@ -175,8 +176,8 @@ for(lo in seq_len(B)) {
 #   }
 #   return(allele_post)                         # length B
 # }
-
-
+# Draw one set of genotype proportions, here 1 represent the number of drawn we want
+# we could change it to nsim (depend on how many draws we want)
 # defining dominance
 h <- runif(B, 0, 1)
 ## final function for genotype frequency at next step
@@ -207,6 +208,8 @@ polygenic_multilocus_next_step <- function(w, h){
     z = matrix(z, nrow = G, ncol = 1)
   )
 }
+
+# allele frequency at next time step
 allele_frequency_next_step <- function(genotype_next) {
   stopifnot(is.matrix(L), is.matrix(R), all(dim(L) == dim(R)))
   G <- nrow(L); B <- ncol(L)
@@ -255,7 +258,6 @@ probability_genotype_fast_t <- function(p_t){
   z_t <- z_u / s
   list(F = F_t, z = z_t)
 }
-
 
 # run over time
 for (t in 1:times) {

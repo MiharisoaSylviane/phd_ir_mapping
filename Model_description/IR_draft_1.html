@@ -401,6 +401,9 @@ we use a Dirichlet–Multinomial with mean composition π_zand the same
 <p><span class="math display">\[
 N^{z} \sim DirMultinomial( M^{z}, Z, \rho_z)
 \]</span></p>
+</div>
+<div id="genotype-test-results-for-single-locus" class="section level3">
+<h3>Genotype test results for single locus:</h3>
 <p>We have <span class="math inline">\(N_{lo}^u\)</span> which is the
 number of mosquitoes positive on genotype, and M is a scaler that
 contains the number of mosquitoes tested. Assuming HWE with
@@ -429,9 +432,9 @@ N_{lo,t}^{a} \sim Betabinomial (N^{a}, P_lo, \rho_{a})
 <h3>Computing phenotype frequencies:</h3>
 <p>Computing <span class="math inline">\(Q*\)</span> (fraction of
 susceptible mosquitoes in the whole population). The fraction of
-mosquitoes susceptible Q* which is more precisely the average of the the
-phenotype representing the died mosquitoes in this location, at time t,
-with an insecticide will be compute by the following way : <span class="math display">\[
+mosquitoes susceptible Q*, the average of the the phenotype representing
+the died mosquitoes in this location, at time t, with an insecticide
+will be compute by the following way : <span class="math display">\[
 P_{l,t,c}^{*} = \sum_{g=1}^{n^{3}} U_{g,c} Z_{g,l,t}
 \]</span> where <span class="math inline">\(U_{g,c}\)</span> is a vector
 that contains the population that carrying the phenotype of this
@@ -440,27 +443,28 @@ U_{g,c} = v_{c}^{s} \prod_{lo=1}^{n} u_{g,lo,c}\]</span> <span class="math displ
 between 0 and 1, and represent the probability of dying for the wild
 type phenotype for an insecticide type.</p>
 <p>This <span class="math inline">\(u_{g,lo,c}\)</span> intends to
-encode how the local genotype at locus lo(left/right allele states
-summarized by indicators <span class="math inline">\(L_(g,lo)\)</span>for SS and <span class="math inline">\(R_(g,lo)\)</span> for RR changes mortality under
-insecticide class c. The parameter <span class="math display">\[\theta_{lo,c} \sim Uniform(0,1)\]</span> is a
+encode how the local genotype at locus lo (left/right allele states
+summarized by indicators <span class="math inline">\(L_(g,lo)\)</span>for SS and <span class="math inline">\(R_(g,lo)\)</span> for RR) changes mortality under
+insecticideclass c. The parameter <span class="math display">\[\theta_{lo,c} \sim Uniform(0,1)\]</span> is a
 locus-specific resistance strength (how much the locus reduces
-mortality), and ℎ𝑙𝑜∈[0,1] is dominance (fraction of the R effect
-expressed in heterozygotes) So we have <span class="math display">\[u_{g,lo,c} = R_{g,lo} + (\theta_{lo,c})
-(1-L_{g,lo}) + (h \theta_{g,lo,c}) + (1-h_{lo}) (L_{g,lo} -
-R_{g,lo})\]</span> ### Computing the genotype frequencies We construct
-the multilocus genotype frequency <span class="math inline">\(Z_{g,lo,t}\)</span> as the product of per-locus,
+mortality), and <span class="math inline">\(h_{lo}\)</span> ∈ [0,1] is
+dominance (fraction of the RR effect expressed in heterozygotes) So we
+have <span class="math display">\[u_{g,lo,c} = R_{g,lo} +
+(\theta_{lo,c}) (1-L_{g,lo}) + (h \theta_{g,lo,c}) + (1-h_{lo})
+(L_{g,lo} - R_{g,lo})\]</span> ### Computing the genotype frequencies We
+construct the multilocus genotype frequency <span class="math inline">\(Z_{g,lo,t}\)</span> as the product of per-locus,
 genotype probabilities<span class="math inline">\(F_{g,lo,t}\)</span>
 across the nloci: <span class="math display">\[Z_{g,t} = \prod_{l=1}^{n}
 F_{g,lo,t}
 \]</span> Let <span class="math inline">\(P_{lo,t}\)</span> denote the
 frequency of allele resistant at locus lo at time t (so <span class="math inline">\(1-P_{lo,t}\)</span> is the frequency of allele S).
 For each multilocus genotype g and locus lo, define left and right
-allele indicator dummy matrices L and R (SS =1, RR=0). The per-locus
+allele indicator dummy matrices L and R (S =1, R=0). The per-locus
 probability that matches the genotype of g is <span class="math display">\[F_{g,lo,t} = (1-P_{lo,t})L_{g,lo} + P_{lo,t}
 (1-L_{g,lo}) *
 (1-P_{lo,t})R_{g,lo} + P_{lo,t} (1-R_{g,lo})
-\]</span> ### Computing the frequency of the genotype at the next step
-t+1 To model the multilocus genotype frequency at time point t+1 is</p>
+\]</span> ### Computing the frequency of the genotype at the next To
+model the multilocus genotype frequency at time point t+1 is</p>
 <p>&lt;Sylviane to define how we compute <span class="math inline">\(Q*\)</span> (via <span class="math inline">\(P*\)</span>) from Z, and how we compute Z from
 p&gt;</p>
 <p>Allele selection process model:</p>
