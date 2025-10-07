@@ -4,7 +4,8 @@ set.seed(123)
 ## Prior
 # p is the initial allele frequency
 
-n_loci <- 10
+n_loci <- 4
+
 # call the dummy function
 source("C:/Users/Sylviane/Desktop/training_perth_2024/phd_ir_mapping/R/create_dummy_matrices.R")
 genotype_combination <- create_dummy_matrices(n_loci)
@@ -71,8 +72,9 @@ B <- ncol(L)
 
 ### 3- Third way
 # p : allele frequency at each locus for each genotype (t)
-#==================================================
-p <- runif(B) 
+
+p <- runif(B, 0, 1) 
+
 probability_genotype_fast <- function(p){
   stopifnot(is.matrix(L), is.matrix(R), all(dim(L) == dim(R)))
   G <- nrow(L); B <- ncol(L)
@@ -301,8 +303,8 @@ for (t in 1:times) {
 p_series <- matrix(NA_real_, nrow = B, ncol = times)
 # giving some values for the initial allele frequencies and r
 # p_series and r  should be equal to n_loci
-p_series[, 1] <- p0 <- c(0.10, 0.30, 0.4, 0.02, 0.03, 0.09, 0.0001, 0.04, 0.08, 0.1 )        
-r <- c(0.20, 0.35, 0.2, 0.1, 0.02, 0.007, 0.89, 0.90, 0.1, 0.78)                          
+p_series[, 1] <- p0 <- c(0.10, 0.30, 0.4, 0.02)        
+r <- c(0.20, 0.35, 0.2, 0.1)                          
 # definining the loop for those allele frequency at, lzed fraction of genotype frequency
 # z_u, and the posterior genotype frequency z_t
 for (t in 1:times) {
@@ -372,7 +374,7 @@ for (t in 1:times) {
 op <- par(mfrow = c(1, 3), mar = c(4,4,2,1))
 cols <- seq_len(ncol(L))
 
-RR_locus <- (L == 0) & (R == 0)                 
+ RR_locus <- (L == 0) & (R == 0)                 
 RR_per_locus <- t(Z_post) %*% RR_locus          
 # to plot a column of matrice, 
 matplot(RR_per_locus, type="l", lty=1, lwd=2, lend = par("lend"), ylim=c(0,1),
@@ -421,6 +423,7 @@ matlines(new_allele_freq_sr, lty=2, ylim= c(0,1))
 ## locality, preicipitation, ....)
 ##   rho = 1 / (m + 1)  =>  m = 1/rho - 1,
 ##   alpha = p * m,  beta = (1 - p) * m.
+
 rho_to_ab <- function(p, rho) {
   stopifnot(all(p > 0 & p < 1), rho >= 0, rho < 1)
   if (rho == 0) return(list(alpha = Inf, beta = Inf))  
@@ -496,11 +499,11 @@ compute_Qstar <- function(L, R, Z, theta, h, v_s) {
 ##     X_{t,c} ~ BetaBinomial(N, p=Q*_{t,c}, ρ)
 ##   where ρ captures BETWEEN-batch heterogeneity (θ varies across batches); ρ=0 reduces to Binomial.
 simulate_fake_data <- function(
-    G = 9, B = 2, Ttime = 8, C = 2,
-    N_per_cell = 120, rho = 0.05, seed = 123,
-    v_s_decay = 1.0       
+    G , B , Ttime , C ,
+    N_per_cell , rho ,
+    v_s_decay       
 ) {
-  set.seed(seed)
+  set.seed(123)
   G <- as.integer(G)[1]; B <- as.integer(B)[1]
   Ttime <- as.integer(Ttime)[1]; C <- as.integer(C)[1]
   
@@ -540,7 +543,7 @@ simulate_fake_data <- function(
     Z = Z, L = L, R = R,
     theta = theta, h = h, v_s0 = v_s0, v_s_decay = v_s_decay,
     params = list(G = G, B = B, Ttime = Ttime, C = C,
-                  N_per_cell = N_per_cell, rho = rho, seed = seed)
+                  N_per_cell = N_per_cell, rho = rho)
   )
 }
 # # plotting q_star acroos time
@@ -559,11 +562,11 @@ simulate_fake_data <- function(
 #   print(p); invisible(p)
 # }
 # # simulation with values
-# sim <- simulate_fake_data(
-#   G = 9, B = 2, Ttime = 8, C = 2,
-#   N_per_cell = 120, rho = 0.03, seed = 123,
-#   v_s_decay = 0.97   
-# )
+sim <- simulate_fake_data(
+ G = 9, B = 2, Ttime = 8, C = 2,
+  N_per_cell = 120, rho = 0.03, 
+ v_s_decay = 0.97   
+)
 df <- sim$data
 head(df)
 
