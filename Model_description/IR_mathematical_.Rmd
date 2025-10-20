@@ -36,7 +36,7 @@ N^{z} \sim DirMultinomial( M^{z}, Z, \rho_z)
 $$
 
 ### Genotype test results for single locus: 
-Let $N_{lo}^u$ denote the number of mosquitoes positive for a particular genotype at locus $lo$, and let $M^{u}$ be the total number of mosquitoes tested. Assuming Hardy–Weinberg equilibrium (HWE) with resistant-allele frequency $p$ (so $$p + q = 1)$$ and $$q = 1 − p$$ for the susceptible allele), the expected genotype frequencies in the population are given by
+Let $N_{lo}^u$ denote the number of mosquitoes positive for a particular genotype at locus $lo$, and let $M^{u}$ be the total number of mosquitoes tested. Assuming Hardy–Weinberg equilibrium (HWE) with resistant-allele frequency $p$ (so $$p + q = 1$$ and $$q = 1 − p$$ for the susceptible allele), the expected genotype frequencies in the population are given by
 
 $$(U_{l_0,t} = p_{lo,t}^2, 2p_{lo,t} q_{lo,t}, q_{lo,t}^2)$$
 
