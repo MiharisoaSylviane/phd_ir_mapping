@@ -3,8 +3,8 @@ editor_options:
   markdown:
     wrap: 72
 output:
-  pdf_document: default
   word_document: default
+  pdf_document: default
 ---
 
 MODELING THE ASSOCITATION GENOTYPE AND PHENOTYPE in ANOPHELES MOSQUITOES IN AFRICA
