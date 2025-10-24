@@ -27,7 +27,7 @@ We will develop and add notation through times of coding
 - \(U_{g,c}\in[0,1]\): susceptibility (prob. death) of genotype \(g\) under insecticide class \(c\)
 - Population susceptibility:
 '''
-$$\(Q^*_{l,t,c}=\sum_{g} U_{g,c}\, Z_{g,l,t}\)$$
+$$\(Q^{*}_{l,t,c}=\sum_{g} U_{g,c} Z_{g,l,t}\)$$
 '''
 > Let $B$ be the number of loci, $G=3^{B}$ the number of multilocus genotypes retained ($SS$, $SR$, $RR$ per locus; RS duplicates removed). Index genotypes by $g ∈ {1,…,G}$, loci by $lo ∈ {1,…,B}$, time by t.
 # Road Map
