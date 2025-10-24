@@ -27,15 +27,15 @@ We will develop and add notation through times of coding
 - $U_{g,c} \in[0,1]$: susceptibility (prob. death) of genotype $g$ under insecticide class $c$
 - Average population susceptibility:
 
-$$\(Q_{l,t,c}^{*}=\sum_{g} U_{g,c} Z_{g,l,t}\)$$
+$$ Q_{l,t,c}^{*}=\sum_{g} U_{g,c} Z_{g,l,t} $$
 
 > Let $B$ be the number of loci, $G = 3^{B}$ the number of multilocus genotypes retained ($SS$, $SR$, $RR$ per locus; RS duplicates removed). Index genotypes by $g ∈ {1,…,G}$, loci by $lo ∈ {1,…,B}$, time by $t$.
 # Road Map
 ## Defining the mathematical process
 The mathematic path describing the model is in https://github.com/MiharisoaSylviane/phd_ir_mapping/tree/main/Model_description, IR_draft.Rmd
-> Next step: Still need to define the phenotype for each genotype $p_z$ 
+> Next step: Still need to define the math to determine the phenotype for each genotype $p_z$ 
 
-## Simulation code matching the math by using others packages
+## Simulation code matching the math by using others packages 
 Checking if the code is producing the expected results
 #### Minimal reproducible code
 ````
