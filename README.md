@@ -25,7 +25,10 @@ We will develop and add notation through times of coding
 - Genotypes (single locus): allele-1 freq \(p_{l,t}\) (so \(q_{l,t}=1-p_{l,t}\)); HWE genotype mix \(U=(p^2,2pq,q^2)\)
 - \(Z_{g,l,t}\): population fraction of genotype \(g\) at \((l,t)\)
 - \(U_{g,c}\in[0,1]\): susceptibility (prob. death) of genotype \(g\) under insecticide class \(c\)
-- Population susceptibility: $$\(Q^*_{l,t,c}=\sum_{g} U_{g,c}\, Z_{g,l,t}\)$$
+- Population susceptibility:
+'''
+$$\(Q^*_{l,t,c}=\sum_{g} U_{g,c}\, Z_{g,l,t}\)$$
+'''
 > Let $B$ be the number of loci, $G=3^{B}$ the number of multilocus genotypes retained ($SS$, $SR$, $RR$ per locus; RS duplicates removed). Index genotypes by $g ∈ {1,…,G}$, loci by $lo ∈ {1,…,B}$, time by t.
 # Road Map
 ## Defining the mathematical process
