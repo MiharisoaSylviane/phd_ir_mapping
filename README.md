@@ -19,20 +19,23 @@ The single locus version of this model could be found in https://github.com/idem
 
 ## Notation
 We will develop and add notation through times of coding
- \(l\): location; \(t\): time; \(c\): insecticide class
-- Bioassay: \(N\) tested, \(D\) died
-- Genotypes (multi-locus): for record \(z\), \(M^{z}\) tested, \(N^{z}\) counts across genotype categories.
-- Genotypes (single locus): allele-1 freq \(p_{l,t}\) (so \(q_{l,t}=1-p_{l,t}\)); HWE genotype mix \(U=(p^2,2pq,q^2)\)
-- \(Z_{g,l,t}\): population fraction of genotype \(g\) at \((l,t)\)
-- \(U_{g,c}\in[0,1]\): susceptibility (prob. death) of genotype \(g\) under insecticide class \(c\)
-- Population susceptibility: $$\(Q^*_{l,t,c}=\sum_{g} U_{g,c}\, Z_{g,l,t}\)$$
-> Let $B$ be the number of loci, $G=3^{B}$ the number of multilocus genotypes retained ($SS$, $SR$, $RR$ per locus; RS duplicates removed). Index genotypes by $g ∈ {1,…,G}$, loci by $lo ∈ {1,…,B}$, time by t.
+ $l$: location; $t$: time; $c$: insecticide class
+- Bioassay: $N$ tested, $D$ died
+- Genotypes (multi-locus): for record $z$, $M^{z}$ tested, $N^{z}$ counts across genotype categories.
+- Genotypes (single locus): allele-1 freq $p_{l,t}$ so $$q_{l,t}= 1 - p_{l,t}$$; HWE genotype mix $U=(p^2, 2pq, q^2)$
+- $Z_{g,l,t}$: population fraction of genotype $g$ at $l,t$
+- $U_{g,c} \in[0,1]$: susceptibility (prob. death) of genotype $g$ under insecticide class $c$
+- Average population susceptibility:
+
+$$ Q_{l,t,c}^{*}=\sum_{g} U_{g,c} Z_{g,l,t} $$
+
+> Let $B$ be the number of loci, $G = 3^{B}$ the number of multilocus genotypes retained ($SS$, $SR$, $RR$ per locus; RS duplicates removed). Index genotypes by $g ∈ {1,…,G}$, loci by $lo ∈ {1,…,B}$, time by $t$.
 # Road Map
 ## Defining the mathematical process
 The mathematic path describing the model is in https://github.com/MiharisoaSylviane/phd_ir_mapping/tree/main/Model_description, IR_draft.Rmd
-> Next step: Still need to write the mathematical process for the average multilocus genotype frequency Z_{t+1} at the next time point,and to determine the polygenic fitness r, which will be use the compute the next allele frequency at t+1. And also to define the phenotype resistant P* and Q* in function of insecticide resistance by using genotype
+> Next step: Still need to define the math to determine the phenotype for each genotype $p_z$ 
 
-## Simulation code matching the math by using others packages
+## Simulation code matching the math by using others packages 
 Checking if the code is producing the expected results
 #### Minimal reproducible code
 ````
