@@ -54,7 +54,7 @@ N_{lo,t}^{a} \sim Betabinomial (N^{a}, P_{lo}, \rho_{a})
 $$ 
 
 ## II - Process models
-### 1- Computing phenotype frequencies:
+### 1- Computing the average phenotype frequencies:
 The model computes the mortality probability $Q^{*}_{lo,t, c}$ for each insecticide $c$ at time $t$ as a weighted mixture of genotype-specific utilities. For each genotype $g$ at locus $lo$, the locus-specific susceptibility contribution $u_{g,lo,c}$ is calculated based on allelic configuration and dominance $ℎ_{lo}$ :
 
 $$
