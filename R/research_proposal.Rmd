@@ -8,13 +8,19 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+options(repos = c(CRAN = "https://cloud.r-project.org"))
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+
+
+\begin{center}
+Spatiotemporal mapping of insecticide resistance and its impact on relative abundance of Anopheles vectors
+\end{center}
+
 
 # Introduction
-Malaria remains a major public health challenge in sub-Saharan Africa despite decades of progress through vector control interventions (add percentage and year). 
+Malaria remains one of the most pressing public health challenges globally, particularly in sub-Saharan Africa. In 2022, approximately 94% of global malaria cases and 95% of malaria-related deaths occurred in this region, highlighting the persistent burden of this disease (WHO, 2023).
 Insecticide-treated nets (ITNs) and indoor residual spraying (IRS) have been central to malaria control across the region, consistently reducing human–vector contact and suppressing transmission (Hobbs _et al._, 2023). ITNs have been reported to contribute to reductions of up to 50% in malaria incidence and 20% in malaria mortality (Zikayo et _al._, 2025), while IRS has been shown to reduce malaria incidence by approximately 50% (Harrison, 2025).
 Regarding the mode of application, ITNs are long-acting control tools that provide protection for up to three years, whereas IRS is typically applied annually (Willson _et al._, 2015). Over the past two decades, ITNs have become the dominant malaria prevention tool due to their scalability, cost-effectiveness, and favorable safety profile (Batt _et al._, 2015). During most of this period, pyrethroids were the only WHO-recommended active ingredient for ITNs and the main insecticide class used in IRS (WHO, 2020), a constraint that simplified procurement and deployment but imposed strong selective pressure on a single insecticide class (Moyes _et al._, 2021). Notably, pyrethroids have also demonstrated the highest overall performance in malaria control compared to other insecticide classes (Zhou _et al._, 2022).
 
@@ -22,18 +28,16 @@ However, as ITN coverage expanded and usage intensified, resistance to pyrethroi
 
 Continental-scale syntheses that integrate WHO bioassay results with molecular surveillance data (e.g., Vgsc genotype frequencies) have revealed species-specific regional trends and heterogeneous resistance trajectories, emphasizing the need for resistance-informed strategies rather than uniform, one-size-fits-all approaches (Hancock, 2020). Indoor insecticide-based interventions, particularly ITNs and IRS, tend to suppress endophilic and anthropophilic vectors such as _Anopheles gambiae_ and _An. coluzzii_ more strongly than the more exophagic _An. arabiensis_, leading to measurable shifts in species composition that can undermine the effectiveness of exclusively indoor tools and complicate routine entomological monitoring (Sinka _et al._, 2016).
 
-Because resistance alters both survival and behavioural responses after insecticide contact, it is expected to reshape local vector abundance and community composition. Modelling and field studies indicate that ITNs can elicit divergent behavioural outcomes depending on their deterrent, inert, or attractive properties. Deterrent ITNs reduce mosquito entry and enhance personal protection but may decrease the likelihood of mosquitoes contacting treated surfaces, thus limiting community-level impact. Conversely, inert or attractive ITNs may increase mosquito entry and contact rates, enhancing mortality and reducing transmission when population-level coverage is high.
+Because resistance alters both survival and behavioural responses after insecticide contact, and interventions are designed to directly or indirectly reduce the mosquito community, they are expected to reshape local vector abundance and community composition. Modelling and field studies indicate that ITNs can elicit divergent behavioural outcomes depending on their deterrent, inert, or attractive properties. Deterrent ITNs reduce mosquito entry and enhance personal protection but may decrease the likelihood of mosquitoes contacting treated surfaces, thus limiting their community-level impact. Conversely, inert or attractive ITNs may increase mosquito entry and contact rates, enhancing mortality and reducing transmission when population-level coverage is high. Moreover, the study by Sinka demonstrated the effect of interventions (IRS and ITNs) on the relative abundance of three African Anopheles species: Anopheles funestus, Anopheles gambiae/coluzzii, and Anopheles arabiensis. Their findings revealed a diverse impact of interventions, with the relative abundance of Anopheles funestus and Anopheles gambiae tending to decrease, while that of Anopheles arabiensis tended to increase.
 
  
 ## PROBLEM STATEMENT
+Data on the true relative abundance of mosquito populations in the wild remain limited and do not cover all areas where such information is critical. The impact of interventions, such as insecticide-treated nets (ITNs) and indoor residual spraying (IRS), on the relative abundance and species composition of mosquito populations—comprising both resistant and susceptible individuals—remains poorly understood. This gap has prompted the use of modeling approaches to gain insights into these dynamics. Current models of _Anopheles_ relative abundance remain limited. For example, Sinka _et al._, 2010 modeled the relative abundance of primary African vectors before and after indoor insecticide interventions, and Killeen _et al.,_ 2000 developed a simulation model of African Anopheles ecology for malaria transmission analysis. While these studies advanced understanding of vector population dynamics, they often assume homogeneous susceptibility within species and do not fully integrate insecticide resistance, spatiotemporal variation in intervention coverage, or resulting shifts in species composition. Consequently, such models may underestimate residual transmission and fail to accurately identify areas requiring supplementary or alternative vector control strategies, limiting their utility for evidence-based planning.
 Despite growing evidence of widespread insecticide resistance among African malaria vectors, the development of new insecticidal compounds is neither a sustainable nor an immediate solution. The discovery, formulation, and regulatory validation of novel insecticides are time-consuming and costly, often requiring several years of intensive research. Consequently, robust spatiotemporal mapping of insecticide resistance is essential to guide decision-making and identify geographic areas where the deployment of new products would yield the greatest impact.
 Although insecticide resistance in African malaria vectors is well documented and various modeling frameworks have been developed, resistance mapping remains uncertain. Existing approaches often have significant limitations:
 - They focus on limited regions or species, failing to capture broader geographic and taxonomic heterogeneity.
 - Current phenotypic resistance maps do not adequately reflect resistance within species complexes and do not capture the mechanisms under the resistance
-- Models based solely on allele frequencies oversimplify resistance evolution, ignoring key factors such as dominance effects, fitness trade-offs, and interactions among multiple loci that together shape the phenotypic expression and spread of resistance.
-Previous studies, such as those analyzing Vgsc-995S and Vgsc-995F mutations, focused on a single target-site gene, revealing geographically structured patterns and the influence of ITN coverage on allele frequencies (Hancock, 2022). However, resistance is often polygenic, involving multiple target-site and metabolic mechanisms that interact to influence species composition and relative abundance under realistic intervention pressures. Consequently, a multilocus genotype approach, which accounts for allele combinations arising from recombination, is essential to capture dominance patterns, resistance expression, and to predict the speed and extent of resistance spread under different intervention pressures. The effect of intervention on the relative abundance and species composition in a population composed by resistant and susceptible are not well understood. 
-The effect of interventions on the relative abundance and species composition of populations composed of both insecticide-resistant and susceptible mosquitoes is not well understood. Current models of _Anopheles_ relative abundance remain limited. For example, Sinka _et al._, 2010 modeled the relative abundance of primary African vectors before and after indoor insecticide interventions, and Killeen _et al.,_ 2000 developed a simulation model of African Anopheles ecology for malaria transmission analysis. While these studies advanced understanding of vector population dynamics, they often assume homogeneous susceptibility within species and do not fully integrate insecticide resistance, spatiotemporal variation in intervention coverage, or resulting shifts in species composition. Consequently, such models may underestimate residual transmission and fail to accurately identify areas requiring supplementary or alternative vector control strategies, limiting their utility for evidence-based planning.
-
+- Models based solely on allele frequencies oversimplify resistance evolution, ignoring key factors such as dominance effects, fitness trade-offs, and interactions among multiple loci that together shape the phenotypic expression and spread of resistance. Previous studies, such as those analyzing Vgsc-995S and Vgsc-995F mutations, focused on a single target-site gene, revealing geographically structured patterns and the influence of ITN coverage on allele frequencies (Hancock, 2022). However, resistance is often polygenic, involving multiple target-site and metabolic mechanisms that interact to influence species composition and relative abundance under realistic intervention pressures. Consequently, a multilocus genotype approach, which accounts for allele combinations arising from recombination, is essential to capture dominance patterns, resistance expression, and to predict the speed and extent of resistance spread under different intervention pressures. The effect of intervention on the relative abundance and species composition in a population composed by resistant and susceptible are not well understood. 
 
 ## Research questions 
 To address gaps in understanding the interaction between resistance evolution and vector control, this study explores three key questions:
@@ -59,15 +63,40 @@ Optimal deployment of interventions depends on local resistance profiles, covera
 - Forecast downstream effects on malaria transmission.
 
 ##  Literature review 
-### 1- Insecticide resistance in African Anopheles
+### 1- Mode of action of insecticide
+#### 1-1 Pyrethroids and Organochlorines
+Pyrethroids, including permethrin and deltamethrin, as well as organochlorines such as DDT, exert their toxic effects by targeting voltage-gated sodium channels in mosquito neurons. These channels are composed of four homologous domains (I–IV), each containing six transmembrane segments (S1–S6) that regulate sodium ion flow across the membrane. Pyrethroids and DDT primarily interact with two sites: PyR1, located at the S5 segment of domain II and S6 of domain III, and PyR2, at the interface between the S5 segment of domain I and S6 of domain II. Binding of the insecticides locks the channels in an abnormally prolonged open state, causing the characteristic “knock-down” effect—loss of coordination, paralysis, and eventually death.
+Other organochlorines, such as dieldrin, target the mosquito’s GABA-A receptors rather than sodium channels. By interfering with chloride ion flow through these pentameric receptors, dieldrin induces neuronal hyperexcitation, leading to convulsions and ultimately the death of the mosquito.
+#### 1-2 Organophosphates and Carbamates
+Organophosphate insecticides, such as malathion and parathion, along with carbamates like bendiocarb and carbofuran, act by disrupting synaptic neurotransmission in mosquitoes. They do so by inhibiting acetylcholinesterase (AChE), the enzyme responsible for breaking down acetylcholine into choline and acetic acid. When AChE is blocked, acetylcholine accumulates in the synaptic cleft, causing continuous neuronal stimulation and persistent nerve signaling. This sustained excitation prevents neurons from returning to their resting state, leading to prolonged muscle contraction, paralysis, and ultimately the death of the mosquito.
+#### 2- Insecticide resistance mechanisms
+Insecticide resistance is the heritable ability of mosquitoes to survive exposure to insecticide doses that are normally lethal to susceptible individuals. It emerges through genetic selection under sustained insecticidal pressure and can undermine the effectiveness of key vector control tools such as insecticide-treated nets and indoor residual spraying (WHO, 2016). Insecticide resistance in malaria vectors arises through multiple adaptive mechanisms that enable mosquitoes to survive exposure to lethal insecticide doses. These mechanisms are broadly classified into four categories: target-site, metabolic, behavioral, and cuticular resistance. Specifically, target-site resistance results from point mutations in genes encoding insecticide-binding proteins, such as the kdr mutation in voltage-gated sodium channels or the ace-1 mutation in acetylcholinesterase, which reduce insecticide efficacy. And metabolic resistance occurs through overexpression or amplification of detoxifying enzymes—including cytochrome P450 monooxygenases, esterases, and glutathione S-transferases—allowing rapid degradation of insecticides and often conferring cross-resistance to multiple classes. Behavioral resistance manifests as altered mosquito activity patterns, such as feeding or resting outdoors, or avoiding oviposition on treated surfaces, providing low to moderate levels of resistance and potentially delaying the onset of physiological resistance. Cuticular resistance arises from thickening or chemical modification of the exoskeleton, which reduces insecticide penetration and offers moderate, sometimes interclass, protection. These mechanisms frequently act in combination, resulting in complex resistance phenotypes that compromise the efficacy of standard vector control interventions and underscore the importance of integrated resistance management strategies. The following table summarises the mechanisms of insecticide resistance: 
+```{r}
+library(readxl)
+data <- read_excel("C:/Users/Sylviane/Downloads/ir_mechanisms.xlsx")
+# Display the data frame
+knitr::kable(data)
+install.packages("kableExtra")
+library(kableExtra)
+# Create a styled table
+data %>%
+  kable("markdown", table.attr = "style='width:100%; border-collapse: collapse;'") %>%
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
 
-### 2- Relative abundance and species composition
-
-### 3- Measurement of Insecticide resistance
-
+### 3- Measurement of insecticide resistance in malaria african vectors
+#### 3-1 Susceptibility bioassays
+Susceptibility bioassays are the primary method for assessing insecticide resistance in malaria vectors established by WHO (WHO, 2022). The WHO tube test exposes adult mosquitoes to a diagnostic dose of insecticide applied on filter papers, and mortality is recorded after 24 hours. Similarly, the CDC bottle bioassay uses insecticide-coated bottles to measure knock-down and mortality over time (CDC, 2025). Accurate interpretation requires careful control of mosquito age, sex, and physiological status, as well as comparison with reference susceptible strains. These mortality rate represent the phenotype frequency of the mosauitoes species.
+#### 3-2 Molecular and biochemical assays
+Molecular and biochemical methods help us understand why mosquitoes become resistant to insecticides, adding depth to what we learn from simple mortality tests. Using PCR, researchers can pinpoint specific genetic changes that cause resistance—like kdr mutations in sodium channels, ace-1 mutations in acetylcholinesterase, or Rdl mutations in GABA receptors. Biochemical tests then look at how mosquitoes’ detoxification systems, such as cytochrome P450s, esterases, and glutathione S-transferases (GSTs), break down or neutralize insecticides before they can act.
+These approaches are valuable because they can detect resistance mechanisms early—sometimes before they show up as reduced mosquito mortality in bioassays. Thanks to advances in genomics and transcriptomics, it’s now possible to identify even rare resistance genes, measure gene copy number changes, and see which detoxification genes or proteins become more active after insecticide exposure. Together, these tools help us uncover how resistance emerges and spreads. When combined with modeling, they also allow us to predict where resistance might appear next and how it could influence the effectiveness of future mosquito control efforts. Those methods will give the allele frequency and genotype frequnecy in the population and allow to identify without passing by the bioassay test the resistance patterns in the mosquitoes population.
 ### 4- Modeling insecticide resistance 
+Severa
 
-### 5- Modeling the effect of intervention on the relative abundance 
+### 5- Relative abundance and species composition
+
+
+### 6- Modeling the effect of intervention on the relative abundance 
 
 
 
@@ -78,7 +107,8 @@ The study will be divided into 3 chapters that will respond each research questi
 
 ## 9- Research plan
 
-## 10- schedule activities 
+
+## 10- Schedule activities 
 - research budget
 
 ## 11- References 
@@ -97,6 +127,7 @@ Nwane, P., Etang, J., Chouaїbou, M. et al. Multiple insecticide resistance mech
 
 Zikayo Amulaga R. (2025). A Review of the Efficacy of Insecticide-Treated Bed Nets in Reducing Malaria Incidence among Children under Five in Rural Sub-Saharan Africa. INOSR Scientific Research 12(1):1-5. https://doi.org/10.59298/INOSRSR/2025/12.1.1500
 
+CDC, 2025, https://www.cdc.gov/mosquitoes/php/toolkit/cdc-bottle-bioassay.html
 
 Harrison Cole, 2025. stopmalarianow.org,
 https://stopmalarianow.org/evaluating-the-effectiveness-of-indoor-residual-spraying-in-malaria-endemic-regions/#what-is-indoor-residual-spraying-and-its-role-in-malaria-control
@@ -109,7 +140,7 @@ Depinay, JM.O., Mbogo, C.M., Killeen, G. et al. A simulation model of African An
 
 Sinka, M.E., Golding, N., Massey, N.C. et al. Modelling the relative abundance of the primary African vectors of malaria before and after the implementation of indoor, insecticide-based vector control. Malar J 15, 142 (2016). https://doi.org/10.1186/s12936-016-1187-8
 
-
+WHO, 2022, https://www.who.int/publications/i/item/9789240043770
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 

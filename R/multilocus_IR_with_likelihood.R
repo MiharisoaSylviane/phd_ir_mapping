@@ -5,7 +5,7 @@ library(VGAM)
 set.seed(123)
 
 # +++++++++setup+++++++++++++++++++++++++++++
-n_loci <- 4
+n_loci <- 2
 source("C:/Users/Sylviane/Desktop/training_perth_2024/phd_ir_mapping/R/create_dummy_matrices.R")
 genotype_combination <- create_dummy_matrices(n_loci)
 # defining the matrix name for the hand of genotype
@@ -16,20 +16,28 @@ L[3, 2]
 G <- nrow(L)
 B <- ncol(L)
 #### GENOTYPE 
+# initial allele frequency
+p <- runif(B, 0,1)
+Ttime <- 5
 # ++++++++hardy–Weinberg genotype probabilities+++++++++++
-probability_genotype_fast <- function(p, L, R) {
+
+probability_genotype_fast <- function(p) {
   prob_left  <- sweep(L, 2, 1 - p, "*") + sweep(1 - L, 2, p, "*")
   prob_right <- sweep(R, 2, 1 - p, "*") + sweep(1 - R, 2, p, "*")
   dup <- 1 + L - R
+  F <- matrix(NA_real_, nrow = G, ncol=B)
   F <- prob_left * prob_right * dup
+  z <- array(NA_real_, dim = G)
   z <- apply(F, 1, prod)
-  z <- z / sum(z)
+  
   return(z)
 }
 
+
 # +++++++++fitness model per genotype+++++++++++++++++++
-polygenic_multilocus_next_step <- function(z, w, h, L, R) {
+polygenic_multilocus_next_step <- function(z, w, h) {
   Gw <- matrix(NA_real_, nrow = G, ncol = B)
+  r_vec <- array(NA_real_, dim = G)
   for (lo in seq_len(B)) {
     SS <- (L[, lo] == 1L) & (R[, lo] == 1L)
     RR <- (L[, lo] == 0L) & (R[, lo] == 0L)
@@ -61,12 +69,12 @@ h <- runif(B, 0, 1)
 Z_list <- list() 
 # observed counts (Dirichlet–Multinomial)
 N_list <- list()    
-Z_list[[1]] <- probability_genotype_fast(p, L, R)
+Z_list[[1]] <- probability_genotype_fast(p)
 
 # +++++++++++++simulation over time+++++++++++++++++++++
 for (t in 2:Tmax) {
   # Update genotype frequencies deterministically (selection)
-  Z_true <- polygenic_multilocus_next_step(Z_list[[t-1]], w, h, L, R)
+  Z_true <- polygenic_multilocus_next_step(Z_list[[t-1]], w, h)
   Z_list[[t]] <- Z_true
   
   # dirichlet–Multinomial likelihood
@@ -81,7 +89,7 @@ for (t in 2:Tmax) {
 # +++++++++++convert lists to matrices for plotting++++++++++
 Z_mat <- do.call(cbind, Z_list)
 N_mat <- do.call(cbind, N_list)
-
+?do.call
 # ++++++++plot genotype frequencies over time+++++++++++++++++++++
 matplot(t(Z_mat), type = "l", lwd = 2, lty = 1,
         xlab = "Generation", ylab = "Genotype frequency",
@@ -229,7 +237,7 @@ sample_allele_counts <- function(p_next, M, rho) {
     beta  <- (1 - p_next[lo]) * phi
     N_obs[lo] <- rbetabinom(1, M, alpha, beta)
   }
-  N_obs
+  N_obs 
 }
 
 # ----------------- Parameters -----------------
@@ -245,6 +253,7 @@ h <- runif(B, 0, 1)
 
 # ----------------- Simulation -----------------
 allele_freq_list <- list()
+
 allele_count_list <- list()
 
 allele_freq_list[[1]] <- allele_frequency_next_step(z, L, R)
@@ -275,29 +284,22 @@ allele_long <- allele_df %>%
                names_to = "Locus",
                values_to = "Allele_Frequency")
 
-# ----------------- Preview -----------------
 head(allele_long, 20)
 
-rho_to_ab <- function(p, rho) {
-  stopifnot(all(p > 0 & p < 1), rho >= 0, rho < 1)
-  if (rho == 0) return(list(alpha = Inf, beta = Inf))  
-  m <- 1 / rho - 1
-  list(alpha = p * m, beta = (1 - p) * m)
-}
 
 ## We assume each batch under insecticide c has its own true susceptibility θ_{batch,c}.
 ## Heterogeneity across batches is modeled by θ_{batch,c} ~ Beta(α_c, β_c) with mean p_c
 ## and overdispersion ρ_c. 
 ## We then sample deaths within the batch as Binomial(N, θ_{batch,c}).
-rbetabinom1 <- function(N, p, rho) {
-  stopifnot(N >= 0, p > 0, p < 1, rho >= 0, rho < 1)
-  if (rho == 0) return(stats::rbinom(1, size = N, prob = p))
-  ab <- rho_to_ab(p, rho)
-  theta <- stats::rbeta(1, ab$alpha, ab$beta)
-  stats::rbinom(1, size = N, prob = theta)
-}
+# rbetabinom1 <- function(N, p, rho) {
+#   stopifnot(N >= 0, p > 0, p < 1, rho >= 0, rho < 1)
+#   if (rho == 0) return(stats::rbinom(1, size = N, prob = p))
+#   ab <- rho_to_ab(p, rho)
+#   theta <- stats::rbeta(1, ab$alpha, ab$beta)
+#   stats::rbinom(1, size = N, prob = theta)
+# }
 
-
+### the average phenotype
 ## - L,R encode each genotype’s alleles per locus (0/1). With locus effects θ (by insecticide c),
 ##   dominance h, and a baseline susceptible mortality v_s[c], we build the per-genotype
 ##   susceptible probability:
@@ -308,38 +310,62 @@ rbetabinom1 <- function(N, p, rho) {
 ##       Q*_{t,c} = Σ_g Z_{g,t} * U_{g,c}.
 ## This function computes U_{g,c} multiplicatively across loci, then averages over genotypes
 ## with Z to return Q* over time (rows) and insecticides (cols).
-compute_Qstar <- function(L, R, Z, theta, h, v_s) {
+# priors
+C <- 2
+theta <- matrix(runif(B * C, 0, 1), nrow = B, ncol =C)
+h <- array(runif(B, 0,1))
+v_s <- array(runif(C, 0,1))
+# function to compute the average phenotype
+compute_Qstar <- function(theta, h, v_s) {
   stopifnot(is.matrix(L), is.matrix(R), all(dim(L) == dim(R)))
   G <- nrow(L); B <- ncol(L)
   stopifnot(is.matrix(theta) && nrow(theta) == B)
-  C <- ncol(theta); stopifnot(length(h) == B, length(v_s) == C)
-  stopifnot(is.matrix(Z) && nrow(Z) == G)
+  stopifnot(length(h) == B, length(v_s) == C)
+  # stopifnot(is.array(z) && nrow(z) == G)
   
   # per-genotype x insecticide utility U_gc (G x C)
   SS <- L * R
   RR <- (1L - L) * (1L - R)
   SR <- L * (1L - R)
   
-  theta_3 <- array(theta, dim = c(1, B, C)); theta_3 <- theta_3[rep(1, G), , , drop = FALSE]
-  h_3     <- array(h,     dim = c(1, B, 1)); h_3     <- h_3[rep(1, G), , rep(1, C), drop = FALSE]
+  theta_3 <- array(theta, dim = c(1, B, C)); 
+  theta_3 <- theta_3[rep(1, G), , , drop = FALSE]
+  h_3     <- array(h,     dim = c(1, B, 1)); 
+  h_3     <- h_3[rep(1, G), , rep(1, C), drop = FALSE]
   SS_3 <- array(SS, dim = c(G, B, 1))[, , rep(1, C), drop = FALSE]
   RR_3 <- array(RR, dim = c(G, B, 1))[, , rep(1, C), drop = FALSE]
   SR_3 <- array(SR, dim = c(G, B, 1))[, , rep(1, C), drop = FALSE]
-  
+  # to avoid that u_3 value will give 0 or negative, we use the .Machine$double.eps
   eps  <- .Machine$double.eps
   u_3  <- SS_3 + RR_3 * theta_3 + SR_3 * (h_3 * theta_3 + (1 - h_3))
   U_gc <- exp(apply(log(pmax(u_3, eps)), c(1, 3), sum))  
+  # for each c, multiply the column by v_s
   U_gc <- sweep(U_gc, 2, v_s, "*")                       
-  
-  # combine with genotype distribution over time
-  Ttime <- ncol(Z)
-  Q <- matrix(NA_real_, nrow = Ttime, ncol = C)
-  for (t in seq_len(Ttime)) {
-    z_t <- Z[, t]                    # length G, sums to 1
-    Q[t, ] <- as.numeric(crossprod(z_t, U_gc))
-  }
-  pmin(pmax(Q, 0), 1)
+  Q_star <- array(as.numeric(crossprod(z, U_gc)))
+  pmin(pmax(Q_star, 0), 1)
+  return(Q_star)
 }
+compute_Qstar(theta, h, v_s)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -375,6 +401,9 @@ simulate_fake_data <- function(
   }
   
   # Tidy data (Time x Insecticide), plus Beta–Binomial observations
+  # Setting	Effect KEEP.OUT.ATTRS = TRUE (default)	Keeps factor levels, labels,
+  # and other attributes from grouping variables. 
+  # This means the output might include more metadata or attributes.
   df <- expand.grid(Time = seq_len(Ttime), Insecticide = seq_len(C), KEEP.OUT.ATTRS = FALSE)
   df$Qstar <- as.vector(Qstar)
   df$InsecticideName <- paste0("Ins_", df$Insecticide)
