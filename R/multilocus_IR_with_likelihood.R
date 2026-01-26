@@ -1,4 +1,4 @@
-library(MCMCpack) 
+library(MCMCpack)
 library(tidyverse)
 library(VGAM) 
 
@@ -21,13 +21,13 @@ p <- runif(B, 0,1)
 Ttime <- 5
 # ++++++++hardy–Weinberg genotype probabilities+++++++++++
 
-probability_genotype_fast <- function(p) {
+probability_genotype_fast <- function(p, L, R) {
   prob_left  <- sweep(L, 2, 1 - p, "*") + sweep(1 - L, 2, p, "*")
   prob_right <- sweep(R, 2, 1 - p, "*") + sweep(1 - R, 2, p, "*")
-  dup <- 1 + L - R
-  F <- matrix(NA_real_, nrow = G, ncol=B)
+  dup <- 1 + L - R # hetero to not having the duplicate RS
+  # F <- matrix(NA_real_, nrow = G, ncol=B)
   F <- prob_left * prob_right * dup
-  z <- array(NA_real_, dim = G)
+  # z <- array(NA_real_, dim = G)
   z <- apply(F, 1, prod)
   
   return(z)
@@ -35,7 +35,9 @@ probability_genotype_fast <- function(p) {
 
 
 # +++++++++fitness model per genotype+++++++++++++++++++
-polygenic_multilocus_next_step <- function(z, w, h) {
+polygenic_multilocus_next_step <- function(z, w, h, L, R) {
+  G <- nrow(L)
+  B <- ncol(L)
   Gw <- matrix(NA_real_, nrow = G, ncol = B)
   r_vec <- array(NA_real_, dim = G)
   for (lo in seq_len(B)) {
@@ -54,42 +56,65 @@ polygenic_multilocus_next_step <- function(z, w, h) {
 
 # +++++++++++++++++parameters+++++++++++++++++++++
 # time steps
-Tmax <- 50 
+Tmax <- 500
 # mosquitoes sampled per generation
 M_z <- 200 
 # overdispersion for Dirichlet–Multinomial
-rho_z <- 0.05   
+rho_z <- 0.05
+
+# convert to 'burstiness' for dirichlet distribution
+# https://en.wikipedia.org/wiki/Dirichlet-multinomial_distribution#Matrix_notation
+alpha0_z <- (1 - rho_z ^2 ) / (rho_z ^ 2)
+
 # initial allele frequencies
 p <- runif(B, 0.3, 0.7) 
-w <- runif(B, 0.8, 1)
+w <- runif(B, 1, 1.4) # should be > 1
 h <- runif(B, 0, 1)
 
 # +++++++++++++Initialize+++++++++++++
 # true genotype frequencies
 Z_list <- list() 
-# observed counts (Dirichlet–Multinomial)
-N_list <- list()    
-Z_list[[1]] <- probability_genotype_fast(p)
+Z_list[[1]] <- probability_genotype_fast(p = p, L = L, R = R)
 
 # +++++++++++++simulation over time+++++++++++++++++++++
 for (t in 2:Tmax) {
   # Update genotype frequencies deterministically (selection)
-  Z_true <- polygenic_multilocus_next_step(Z_list[[t-1]], w, h)
+  Z_true <- polygenic_multilocus_next_step(
+    z = Z_list[[t-1]],
+    w = w,
+    h = h,
+    L = L,
+    R = R
+  )
   Z_list[[t]] <- Z_true
   
+  # # dirichlet–Multinomial likelihood
+  # alpha <- pmax(Z_true * (1 - rho_z) / rho_z, 1e-8)
+  # Z_disp <- as.numeric(rdirichlet(1, alpha))
+  # Z_disp <- Z_disp / sum(Z_disp)
+  # N_obs <- as.vector(rmultinom(1, M_z, Z_disp))
+  # N_list[[t]] <- N_obs
+  
+}
+
+# observed counts (Dirichlet–Multinomial)
+N_list <- list()
+
+
+for (t in 1:Tmax) {
   # dirichlet–Multinomial likelihood
-  alpha <- pmax(Z_true * (1 - rho_z) / rho_z, 1e-8)
+  alpha <- Z_list[[t]] * alpha0_z
+  # alpha <- pmax(Z_list[[t]] * (1 - rho_z) / rho_z, 1e-8)
   Z_disp <- as.numeric(rdirichlet(1, alpha))
-  Z_disp <- Z_disp / sum(Z_disp)
+  # Z_disp <- Z_disp / sum(Z_disp)
   N_obs <- as.vector(rmultinom(1, M_z, Z_disp))
   N_list[[t]] <- N_obs
-  
 }
 
 # +++++++++++convert lists to matrices for plotting++++++++++
 Z_mat <- do.call(cbind, Z_list)
 N_mat <- do.call(cbind, N_list)
-?do.call
+# ?do.call
 # ++++++++plot genotype frequencies over time+++++++++++++++++++++
 matplot(t(Z_mat), type = "l", lwd = 2, lty = 1,
         xlab = "Generation", ylab = "Genotype frequency",
