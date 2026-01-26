@@ -1,4 +1,4 @@
-library(MCMCpack) 
+library(MCMCpack)
 library(tidyverse)
 library(VGAM) 
 
@@ -21,13 +21,13 @@ p <- runif(B, 0,1)
 Ttime <- 5
 # ++++++++hardy–Weinberg genotype probabilities+++++++++++
 
-probability_genotype_fast <- function(p) {
+probability_genotype_fast <- function(p, L, R) {
   prob_left  <- sweep(L, 2, 1 - p, "*") + sweep(1 - L, 2, p, "*")
   prob_right <- sweep(R, 2, 1 - p, "*") + sweep(1 - R, 2, p, "*")
-  dup <- 1 + L - R
-  F <- matrix(NA_real_, nrow = G, ncol=B)
+  dup <- 1 + L - R # hetero to not having the duplicate RS
+  # F <- matrix(NA_real_, nrow = G, ncol=B)
   F <- prob_left * prob_right * dup
-  z <- array(NA_real_, dim = G)
+  # z <- array(NA_real_, dim = G)
   z <- apply(F, 1, prod)
   
   return(z)
@@ -35,7 +35,9 @@ probability_genotype_fast <- function(p) {
 
 
 # +++++++++fitness model per genotype+++++++++++++++++++
-polygenic_multilocus_next_step <- function(z, w, h) {
+polygenic_multilocus_next_step <- function(z, w, h, L, R) {
+  G <- nrow(L)
+  B <- ncol(L)
   Gw <- matrix(NA_real_, nrow = G, ncol = B)
   r_vec <- array(NA_real_, dim = G)
   for (lo in seq_len(B)) {
@@ -54,42 +56,65 @@ polygenic_multilocus_next_step <- function(z, w, h) {
 
 # +++++++++++++++++parameters+++++++++++++++++++++
 # time steps
-Tmax <- 50 
+Tmax <- 500
 # mosquitoes sampled per generation
 M_z <- 200 
 # overdispersion for Dirichlet–Multinomial
-rho_z <- 0.05   
+rho_z <- 0.05
+
+# convert to 'burstiness' for dirichlet distribution
+# https://en.wikipedia.org/wiki/Dirichlet-multinomial_distribution#Matrix_notation
+alpha0_z <- (1 - rho_z ^2 ) / (rho_z ^ 2)
+
 # initial allele frequencies
 p <- runif(B, 0.3, 0.7) 
-w <- runif(B, 0.8, 1)
+w <- runif(B, 1, 1.4) # should be > 1
 h <- runif(B, 0, 1)
 
 # +++++++++++++Initialize+++++++++++++
 # true genotype frequencies
 Z_list <- list() 
-# observed counts (Dirichlet–Multinomial)
-N_list <- list()    
-Z_list[[1]] <- probability_genotype_fast(p)
+Z_list[[1]] <- probability_genotype_fast(p = p, L = L, R = R)
 
 # +++++++++++++simulation over time+++++++++++++++++++++
 for (t in 2:Tmax) {
   # Update genotype frequencies deterministically (selection)
-  Z_true <- polygenic_multilocus_next_step(Z_list[[t-1]], w, h)
+  Z_true <- polygenic_multilocus_next_step(
+    z = Z_list[[t-1]],
+    w = w,
+    h = h,
+    L = L,
+    R = R
+  )
   Z_list[[t]] <- Z_true
   
+  # # dirichlet–Multinomial likelihood
+  # alpha <- pmax(Z_true * (1 - rho_z) / rho_z, 1e-8)
+  # Z_disp <- as.numeric(rdirichlet(1, alpha))
+  # Z_disp <- Z_disp / sum(Z_disp)
+  # N_obs <- as.vector(rmultinom(1, M_z, Z_disp))
+  # N_list[[t]] <- N_obs
+  
+}
+
+# observed counts (Dirichlet–Multinomial)
+N_list <- list()
+
+
+for (t in 1:Tmax) {
   # dirichlet–Multinomial likelihood
-  alpha <- pmax(Z_true * (1 - rho_z) / rho_z, 1e-8)
+  alpha <- Z_list[[t]] * alpha0_z
+  # alpha <- pmax(Z_list[[t]] * (1 - rho_z) / rho_z, 1e-8)
   Z_disp <- as.numeric(rdirichlet(1, alpha))
-  Z_disp <- Z_disp / sum(Z_disp)
+  # Z_disp <- Z_disp / sum(Z_disp)
   N_obs <- as.vector(rmultinom(1, M_z, Z_disp))
   N_list[[t]] <- N_obs
-  
 }
 
 # +++++++++++convert lists to matrices for plotting++++++++++
 Z_mat <- do.call(cbind, Z_list)
 N_mat <- do.call(cbind, N_list)
-?do.call
+# ?do.call
 # ++++++++plot genotype frequencies over time+++++++++++++++++++++
 matplot(t(Z_mat), type = "l", lwd = 2, lty = 1,
         xlab = "Generation", ylab = "Genotype frequency",
@@ -100,100 +125,128 @@ matplot(t(N_mat), type = "l", lwd = 2, lty = 1,
         xlab = "Generation", ylab = "Observed genotype counts",
         main = "Observed counts (Dirichlet–Multinomial)")
 
-#### GENOTYPE FREQUENCY
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#++++ getting dataframe+++++++++++
-# create genotype labels
-genotype_labels <- function(L, R) {
+
+
+# ----------------------------------------------------
+# GENOTYPE TO PHENOTYPE
+# Without taking account of the different type of epistasis, here we consider epsilon as the modifier 
+# on how gene interact to each other.
+# polygenic 
+# Compute locus-level genotype susceptibility
+compute_Ugc <- function(L, R, w, h) {
   G <- nrow(L)
   B <- ncol(L)
-  labels <- character(G)
+  f <- matrix(NA, nrow = G, ncol = B)
   
-  for (g in 1:G) {
-    loci <- character(B)
-    for (lo in 1:B) {
-      if (L[g, lo] == 1 && R[g, lo] == 1) {
-        loci[lo] <- "SS"
-      } else if (L[g, lo] == 0 && R[g, lo] == 0) {
-        loci[lo] <- "RR"
-      } else {
-        loci[lo] <- "SR"
-      }
-    }
-    labels[g] <- paste(loci, collapse = "-")
+  for (l in 1:B) {
+    SS <- (L[, l] == 1 & R[, l] == 1)
+    RR <- (L[, l] == 0 & R[, l] == 0)
+    SR <- (L[, l] == 1 & R[, l] == 0) | (L[, l] == 0 & R[, l] == 1)
+    
+    f[, l] <- 1 * SS +
+      w[l] * RR +
+      (h[l] * w[l] + (1 - h[l])) * SR
   }
   
-  return(labels)
+  return(f)  # Ugc
 }
 
-labels <- genotype_labels(L, R)
 
-# convert Z_mat (true frequencies) to long dataframe
-Z_df <- as.data.frame(Z_mat)
-colnames(Z_df) <- paste0("Gen_", 1:ncol(Z_df))
-Z_df$Genotype <- labels
-
-Z_long <- Z_df %>%
-  pivot_longer(cols = starts_with("Gen_"),
-               names_to = "Generation",
-               values_to = "Frequency") %>%
-  mutate(Generation = as.integer(gsub("Gen_", "", Generation)))
-
-# optionally: convert observed counts N_mat to dataframe
-N_df <- as.data.frame(N_mat)
-colnames(N_df) <- paste0("Gen_", 1:ncol(N_df))
-N_df$Genotype <- labels
-
-N_long <- N_df %>%
-  pivot_longer(cols = starts_with("Gen_"),
-               names_to = "Generation",
-               values_to = "Count") %>%
-  mutate(Generation = as.integer(gsub("Gen_", "", Generation)))
-
-# preview
-head(Z_long)
-head(N_long)
-
-### genotype per SS RR RS
-################ get a dataframe
-# parameters 
-# generations
-Tmax <- ncol(Z_mat) 
-# number of loci
-B <- ncol(L) 
-# number of multilocus genotypes
-G <- nrow(L)         
-genotypes <- c("SS", "SR", "RR")
-
-# function to get per-locus genotype indices 
-get_indices <- function(L, R, locus, gt) {
-  if(gt == "SS") return(which(L[, locus] == 1 & R[, locus] == 1))
-  if(gt == "SR") return(which((L[, locus] == 1 & R[, locus] == 0) | (L[, locus] == 0 & R[, locus] == 1)))
-  if(gt == "RR") return(which(L[, locus] == 0 & R[, locus] == 0))
+compute_Ustar <- function(Ugc, theta, type = "additive", epsilon = NULL) {
+  
+  # Compute base contributions
+  U_add <- rowSums(Ugc)
+  U_mult <- apply(Ugc, 1, prod)
+  
+  if (type == "additive") {
+    U_star <- U_add
+    
+  } else if (type == "multiplicative") {
+    U_star <- U_mult
+    
+  } else if (type == "epistatic") {
+    if (is.null(epsilon)) stop("epsilon required")
+    
+    # Pairwise epistatic interactions
+    pairwise_epi <- rowSums(Ugc %*% epsilon * Ugc)
+    
+    # Combine contributions
+    U_star <- U_add + U_mult + pairwise_epi
+  }
+  
+  # Scale by sum of theta
+  U_star <- U_star / sum(theta)
+  
+  return(U_star)
 }
 
-# create expand.grid for all combinations 
-df <- expand.grid(
-  Generation = 1:Tmax,
-  Locus = 1:B,
-  Genotype = genotypes
+
+
+# Compute mortality probability for a genotype
+compute_p_died <- function(U_star) {
+  p <- 1 - U_star
+  p[p < 0] <- 0
+  p[p > 1] <- 1
+  return(p)
+}
+
+# Beta-Binomial simulation for bioassay
+simulate_beta_binomial <- function(p, n, phi = 20) {
+  alpha <- p * phi
+  beta  <- (1 - p) * phi
+  p_sample <- rbeta(length(p), alpha, beta)
+  y <- rbinom(length(p), size = n, prob = p_sample)
+  return(list(p_sample = p_sample, y = y))
+}
+
+# Parameters
+theta <- runif(G, 0.5, 1)
+epsilon <- matrix(runif(B^2, -0.2, 0.2), B, B)
+n_tested <- 100  # mosquitoes per bioassay
+
+# Compute locus-level susceptibility
+Ugc <- compute_Ugc(L, R, w, h)
+
+# Individual U_star types
+U_add <- compute_Ustar(Ugc, theta, "additive")
+U_mult <- compute_Ustar(Ugc, theta, "multiplicative")
+U_epi <- compute_Ustar(Ugc, theta, "epistatic", epsilon)
+
+# Mortality probabilities per genotype
+p_add <- compute_p_died(U_add)
+p_mult <- compute_p_died(U_mult)
+p_epi <- compute_p_died(U_epi)
+
+# Combined U_star with weights alpha, beta, gamma
+alpha <- 0.33; beta <- 0.33; gamma <- 0.34
+U_combined <- alpha * U_add + beta * U_mult + gamma * U_epi
+p_combined <- compute_p_died(U_combined)
+
+# Simulate bioassay deaths
+sim_add <- simulate_beta_binomial(p_add, n_tested)
+sim_mult <- simulate_beta_binomial(p_mult, n_tested)
+sim_epi <- simulate_beta_binomial(p_epi, n_tested)
+sim_combined <- simulate_beta_binomial(p_combined, n_tested)
+
+# Save results
+df <- data.frame(
+  Genotype = 1:G,
+  p_add = p_add,
+  p_mult = p_mult,
+  p_epi = p_epi,
+  p_combined = p_combined,
+  dead_add = sim_add$y,
+  dead_mult = sim_mult$y,
+  dead_epi = sim_epi$y,
+  dead_combined = sim_combined$y
 )
-
-# compute per-locus genotype frequencies
-df$Frequency <- mapply(function(gen, loc, gt){
-  idx <- get_indices(L, R, loc, gt)
-  sum(Z_mat[idx, gen])
-}, df$Generation, df$Locus, df$Genotype)
-
-# convert to tibble
-df_tibble <- as_tibble(df)
-
-# preview
-df_tibble %>% arrange(Locus, Generation)
+df
 
 
-#### ALLELE FREQUENCY
-# ----------------- Functions -----------------
+
+
+# ALLELE FREQUENCY
+# function
 allele_frequency_next_step <- function(genotype_next, L, R) {
   G <- nrow(L); B <- ncol(L)
   p_next <- numeric(B)
@@ -240,18 +293,18 @@ sample_allele_counts <- function(p_next, M, rho) {
   N_obs 
 }
 
-# ----------------- Parameters -----------------
+# Parameters 
 set.seed(123)
 Tmax <- 50      # generations
 M <- 200        # mosquitoes sampled per locus
 rho <- 0.05     # overdispersion
-n_loci <- 4
+n_loci <- 2
 p <- runif(B, 0.3, 0.7)
 z <- probability_genotype_fast(p, L, R)
 w <- runif(B, 0.8, 1)
 h <- runif(B, 0, 1)
 
-# ----------------- Simulation -----------------
+#  Simulation
 allele_freq_list <- list()
 
 allele_count_list <- list()
@@ -267,7 +320,7 @@ for (t in 2:Tmax) {
   allele_count_list[[t]] <- sample_allele_counts(p_next, M, rho)
 }
 
-# ----------------- Convert to tidy dataframe -----------------
+# Convert to tidy dataframe
 allele_mat <- do.call(rbind, allele_freq_list)
 allele_count_mat <- do.call(rbind, allele_count_list)
 
@@ -285,6 +338,101 @@ allele_long <- allele_df %>%
                values_to = "Allele_Frequency")
 
 head(allele_long, 20)
+
+
+
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+##### GENOTYPE FREQUENCY
+#++++ getting dataframe+++++++++++
+# create genotype labels
+# genotype_labels <- function(L, R) {
+#   G <- nrow(L)
+#   B <- ncol(L)
+#   labels <- character(G)
+#   
+#   for (g in 1:G) {
+#     loci <- character(B)
+#     for (lo in 1:B) {
+#       if (L[g, lo] == 1 && R[g, lo] == 1) {
+#         loci[lo] <- "SS"
+#       } else if (L[g, lo] == 0 && R[g, lo] == 0) {
+#         loci[lo] <- "RR"
+#       } else {
+#         loci[lo] <- "SR"
+#       }
+#     }
+#     labels[g] <- paste(loci, collapse = "-")
+#   }
+#   
+#   return(labels)
+# }
+# 
+# labels <- genotype_labels(L, R)
+# 
+# # convert Z_mat (true frequencies) to long dataframe
+# Z_df <- as.data.frame(Z_mat)
+# colnames(Z_df) <- paste0("Gen_", 1:ncol(Z_df))
+# Z_df$Genotype <- labels
+# 
+# Z_long <- Z_df %>%
+#   pivot_longer(cols = starts_with("Gen_"),
+#                names_to = "Generation",
+#                values_to = "Frequency") %>%
+#   mutate(Generation = as.integer(gsub("Gen_", "", Generation)))
+# 
+# # optionally: convert observed counts N_mat to dataframe
+# N_df <- as.data.frame(N_mat)
+# colnames(N_df) <- paste0("Gen_", 1:ncol(N_df))
+# N_df$Genotype <- labels
+# 
+# N_long <- N_df %>%
+#   pivot_longer(cols = starts_with("Gen_"),
+#                names_to = "Generation",
+#                values_to = "Count") %>%
+#   mutate(Generation = as.integer(gsub("Gen_", "", Generation)))
+# 
+# # preview
+# head(Z_long)
+# head(N_long)
+# 
+# ### genotype per SS RR RS
+# ################ get a dataframe
+# # parameters 
+# # generations
+# Tmax <- ncol(Z_mat) 
+# # number of loci
+# B <- ncol(L) 
+# # number of multilocus genotypes
+# G <- nrow(L)         
+# genotypes <- c("SS", "SR", "RR")
+# 
+# # function to get per-locus genotype indices 
+# get_indices <- function(L, R, locus, gt) {
+#   if(gt == "SS") return(which(L[, locus] == 1 & R[, locus] == 1))
+#   if(gt == "SR") return(which((L[, locus] == 1 & R[, locus] == 0) | (L[, locus] == 0 & R[, locus] == 1)))
+#   if(gt == "RR") return(which(L[, locus] == 0 & R[, locus] == 0))
+# }
+# 
+# # create expand.grid for all combinations 
+# df <- expand.grid(
+#   Generation = 1:Tmax,
+#   Locus = 1:B,
+#   Genotype = genotypes
+# )
+# 
+# # compute per-locus genotype frequencies
+# df$Frequency <- mapply(function(gen, loc, gt){
+#   idx <- get_indices(L, R, loc, gt)
+#   sum(Z_mat[idx, gen])
+# }, df$Generation, df$Locus, df$Genotype)
+# 
+# # convert to tibble
+# df_tibble <- as_tibble(df)
+# 
+# # preview
+# df_tibble %>% arrange(Locus, Generation)
 
 
 ## We assume each batch under insecticide c has its own true susceptibility θ_{batch,c}.
@@ -311,150 +459,39 @@ head(allele_long, 20)
 ## This function computes U_{g,c} multiplicatively across loci, then averages over genotypes
 ## with Z to return Q* over time (rows) and insecticides (cols).
 # priors
-C <- 2
-theta <- matrix(runif(B * C, 0, 1), nrow = B, ncol =C)
-h <- array(runif(B, 0,1))
-v_s <- array(runif(C, 0,1))
-# function to compute the average phenotype
-compute_Qstar <- function(theta, h, v_s) {
-  stopifnot(is.matrix(L), is.matrix(R), all(dim(L) == dim(R)))
-  G <- nrow(L); B <- ncol(L)
-  stopifnot(is.matrix(theta) && nrow(theta) == B)
-  stopifnot(length(h) == B, length(v_s) == C)
-  # stopifnot(is.array(z) && nrow(z) == G)
-  
-  # per-genotype x insecticide utility U_gc (G x C)
-  SS <- L * R
-  RR <- (1L - L) * (1L - R)
-  SR <- L * (1L - R)
-  
-  theta_3 <- array(theta, dim = c(1, B, C)); 
-  theta_3 <- theta_3[rep(1, G), , , drop = FALSE]
-  h_3     <- array(h,     dim = c(1, B, 1)); 
-  h_3     <- h_3[rep(1, G), , rep(1, C), drop = FALSE]
-  SS_3 <- array(SS, dim = c(G, B, 1))[, , rep(1, C), drop = FALSE]
-  RR_3 <- array(RR, dim = c(G, B, 1))[, , rep(1, C), drop = FALSE]
-  SR_3 <- array(SR, dim = c(G, B, 1))[, , rep(1, C), drop = FALSE]
-  # to avoid that u_3 value will give 0 or negative, we use the .Machine$double.eps
-  eps  <- .Machine$double.eps
-  u_3  <- SS_3 + RR_3 * theta_3 + SR_3 * (h_3 * theta_3 + (1 - h_3))
-  U_gc <- exp(apply(log(pmax(u_3, eps)), c(1, 3), sum))  
-  # for each c, multiply the column by v_s
-  U_gc <- sweep(U_gc, 2, v_s, "*")                       
-  Q_star <- array(as.numeric(crossprod(z, U_gc)))
-  pmin(pmax(Q_star, 0), 1)
-  return(Q_star)
-}
-compute_Qstar(theta, h, v_s)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-simulate_fake_data <- function(
-    G , B , Ttime , C ,
-    N_per_cell , rho ,
-    v_s_decay       
-) {
-  set.seed(123)
-  G <- as.integer(G)[1]; B <- as.integer(B)[1]
-  Ttime <- as.integer(Ttime)[1]; C <- as.integer(C)[1]
-  
-  # Genotype encodings (G x B)
-  L <- matrix(sample(0:1, G * B, TRUE), nrow = G)
-  R <- matrix(sample(0:1, G * B, TRUE), nrow = G)
-  
-  # Genotype frequencies Z (G x T)
-  Z <- matrix(NA_real_, nrow = G, ncol = Ttime)
-  for (t in seq_len(Ttime)) { v <- stats::runif(G); Z[, t] <- v / sum(v) }
-  
-  # Parameters
-  theta <- matrix(stats::runif(B * C, 0.3, 0.9), nrow = B, ncol = C)
-  h     <- stats::runif(B, 0, 1)
-  v_s0  <- stats::runif(C, 0.6, 1.0)
-  
-  # the baseline of percent mortality
-  v_s_t <- matrix(v_s0, nrow = Ttime, ncol = length(v_s0), byrow = TRUE)
-  
-  # Compute Q* at each time with that time's v_s
-  Qstar <- matrix(NA_real_, nrow = Ttime, ncol = C)
-  for (t in seq_len(Ttime)) {
-    Qstar[t, ] <- compute_Qstar(L, R, Z[, t, drop = FALSE], theta, h, v_s_t[t, ])
-  }
-  
-  # Tidy data (Time x Insecticide), plus Beta–Binomial observations
-  # Setting	Effect KEEP.OUT.ATTRS = TRUE (default)	Keeps factor levels, labels,
-  # and other attributes from grouping variables. 
-  # This means the output might include more metadata or attributes.
-  df <- expand.grid(Time = seq_len(Ttime), Insecticide = seq_len(C), KEEP.OUT.ATTRS = FALSE)
-  df$Qstar <- as.vector(Qstar)
-  df$InsecticideName <- paste0("Ins_", df$Insecticide)
-  df$N <- N_per_cell
-  df$Deaths <- mapply(function(n, q) rbetabinom1(n, q, rho), df$N, df$Qstar)
-  df$Observed <- df$Deaths / df$N
-  
-  list(
-    data = tibble::as_tibble(df),  # tidy frame
-    Qstar = Qstar,                 # T x C
-    Z = Z, L = L, R = R,
-    theta = theta, h = h, v_s0 = v_s0, v_s_decay = v_s_decay,
-    params = list(G = G, B = B, Ttime = Ttime, C = C,
-                  N_per_cell = N_per_cell, rho = rho)
-  )
-}
-
-
-sim <- simulate_fake_data(
-  G = 9, B = 2, Ttime = 8, C = 2,
-  N_per_cell = 120, rho = 0.03, 
-  v_s_decay = 0.97   
-)
-df <- sim$data
-head(df)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# C <- 2
+# theta <- matrix(runif(B * C, 0, 1), nrow = B, ncol =C)
+# h <- array(runif(B, 0,1))
+# v_s <- array(runif(C, 0,1))
+# # function to compute the average phenotype
+# compute_Qstar <- function(theta, h, v_s) {
+#   stopifnot(is.matrix(L), is.matrix(R), all(dim(L) == dim(R)))
+#   G <- nrow(L); B <- ncol(L)
+#   stopifnot(is.matrix(theta) && nrow(theta) == B)
+#   stopifnot(length(h) == B, length(v_s) == C)
+#   # stopifnot(is.array(z) && nrow(z) == G)
+#   
+#   # per-genotype x insecticide utility U_gc (G x C)
+#   SS <- L * R
+#   RR <- (1L - L) * (1L - R)
+#   SR <- L * (1L - R)
+#   
+#   theta_3 <- array(theta, dim = c(1, B, C)); 
+#   theta_3 <- theta_3[rep(1, G), , , drop = FALSE]
+#   h_3     <- array(h,     dim = c(1, B, 1)); 
+#   h_3     <- h_3[rep(1, G), , rep(1, C), drop = FALSE]
+#   SS_3 <- array(SS, dim = c(G, B, 1))[, , rep(1, C), drop = FALSE]
+#   RR_3 <- array(RR, dim = c(G, B, 1))[, , rep(1, C), drop = FALSE]
+#   SR_3 <- array(SR, dim = c(G, B, 1))[, , rep(1, C), drop = FALSE]
+#   # to avoid that u_3 value will give 0 or negative, we use the .Machine$double.eps
+#   eps  <- .Machine$double.eps
+#   u_3  <- SS_3 + RR_3 * theta_3 + SR_3 * (h_3 * theta_3 + (1 - h_3))
+#   U_gc <- exp(apply(log(pmax(u_3, eps)), c(1, 3), sum))  
+#   # for each c, multiply the column by v_s
+#   U_gc <- sweep(U_gc, 2, v_s, "*")                       
+#   Q_star <- array(as.numeric(crossprod(z, U_gc)))
+#   pmin(pmax(Q_star, 0), 1)
+#   return(Q_star)
+# }
+# compute_Qstar(theta, h, v_s)
 
