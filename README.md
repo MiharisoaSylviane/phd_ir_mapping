@@ -45,7 +45,7 @@ F <- prob_left * prob_right * (1 + L - R)
 Z_prior <- apply(F, 1, prod); z_t <- Z_prior / sum(Z_prior)
 ````
 
-````
+
 #### Fitness (per locus):
 SS <- (L==1) & (R==1); RR <- (L==0) & (R==0); SR <- (L==1) & (R==0)
 G_loc <- 1*SS + w*RR + (h*w + (1-h))*SR
@@ -55,15 +55,58 @@ r_t <- apply(G_loc, 1, prod)
 ````
 #### Update genotype distribution:
 Z_star <- z_t * r_t; Z_next <- Z_star / sum(Z_star)
+````
+````
+#### Phenotype of each genotype:
+##Compute phenotype per locus
+````
+epsilon <- matrix(runif(B^2, -0.2, 0.2), B, B)
+
+compute_Ugc <- function(L, R, w, h) {
+  G <- nrow(L)
+  B <- ncol(L)
+  f <- matrix(NA, nrow = G, ncol = B)
+  
+  for (l in 1:B) {
+    SS <- (L[, l] == 1 & R[, l] == 1)
+    RR <- (L[, l] == 0 & R[, l] == 0)
+    SR <- (L[, l] != R[, l])
+    
+    f[, l] <- 1 * SS + w[l] * RR + (h[l] * w[l] + (1 - h[l])) * SR
+  }
+  
+  return(f)
+}
+
+Ugc <- compute_Ugc(L, R, w, h)
+
+## Combine loci: additive, multiplicative, epistatic
+alpha <- 0.4
+beta  <- 0.4
+gamma <- 0.2
+
+U_add <- rowSums(Ugc)
+U_mult <- apply(Ugc, 1, prod)
+U_epi <- rowSums(Ugc) + rowSums(Ugc %*% epsilon * Ugc)
+````
+## Theta: effect of insecticide resistance per genotype
+````
+theta <- runif(G, 0.5, 1)   
+````
+# Final scaled phenotype U* (normalized by sum(theta))
+U_star <- (alpha*U_add + beta*U_mult + gamma*U_epi) / sum(theta) * theta
+````
+## Phenotype from each genotype
+data.frame(Genotype = 1:G, U_star = U_star, theta = theta)
+````
 #### Update allele frequency per locus:
+````
 allele_from_Z <- function(Z_next, L, R) {
   G <- nrow(L); B <- ncol(L)
   stopifnot(length(Z_next) == G)
   a_counts <- (1 - L) + (1 - R)             # G x B ( resistant alleles)
   as.numeric(0.5 * (t(Z_next) %*% a_counts))   # length B
 }
-
-
 ````
 ### Estimating the parameters used by running the model by fake real data
 ## Greta version of the code
