@@ -59,6 +59,7 @@ Z_star <- z_t * r_t; Z_next <- Z_star / sum(Z_star)
 ````
 #### Phenotype of each genotype:
 ##Compute phenotype per locus
+````
 epsilon <- matrix(runif(B^2, -0.2, 0.2), B, B)
 
 compute_Ugc <- function(L, R, w, h) {
@@ -87,23 +88,26 @@ gamma <- 0.2
 U_add <- rowSums(Ugc)
 U_mult <- apply(Ugc, 1, prod)
 U_epi <- rowSums(Ugc) + rowSums(Ugc %*% epsilon * Ugc)
-
+````
 ## Theta: effect of insecticide resistance per genotype
+````
 theta <- runif(G, 0.5, 1)   
-
+````
 # Final scaled phenotype U* (normalized by sum(theta))
 U_star <- (alpha*U_add + beta*U_mult + gamma*U_epi) / sum(theta) * theta
-
+````
 ## Phenotype from each genotype
 data.frame(Genotype = 1:G, U_star = U_star, theta = theta)
-
+````
 #### Update allele frequency per locus:
+````
 allele_from_Z <- function(Z_next, L, R) {
   G <- nrow(L); B <- ncol(L)
   stopifnot(length(Z_next) == G)
   a_counts <- (1 - L) + (1 - R)             # G x B ( resistant alleles)
   as.numeric(0.5 * (t(Z_next) %*% a_counts))   # length B
 }
+````
 ### Estimating the parameters used by running the model by fake real data
 ## Greta version of the code
 Produce a greta version syntax of the simulation code
