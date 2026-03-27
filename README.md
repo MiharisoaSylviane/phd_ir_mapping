@@ -56,6 +56,7 @@ r_t <- apply(G_loc, 1, prod)
 #### Update genotype distribution:
 Z_star <- z_t * r_t; Z_next <- Z_star / sum(Z_star)
 ````
+````
 #### Phenotype of each genotype:
 ##Compute phenotype per locus
 epsilon <- matrix(runif(B^2, -0.2, 0.2), B, B)
