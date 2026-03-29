@@ -1,10 +1,11 @@
 library(MCMCpack)
 library(tidyverse)
 library(VGAM) 
+library(randomForest)
 
 set.seed(123)
 
-# +++++++++setup+++++++++++++++++++++++++++++
+
 n_loci <- 2
 source("C:/Users/Sylviane/Desktop/training_perth_2024/phd_ir_mapping/R/create_dummy_matrices.R")
 genotype_combination <- create_dummy_matrices(n_loci)
@@ -110,6 +111,7 @@ for (t in 1:Tmax) {
   N_obs <- as.vector(rmultinom(1, M_z, Z_disp))
   N_list[[t]] <- N_obs
 }
+
 
 # +++++++++++convert lists to matrices for plotting++++++++++
 Z_mat <- do.call(cbind, Z_list)
@@ -243,8 +245,71 @@ df <- data.frame(
 df
 
 
+### Random Forest genotype to phenotype
+# Using Z_mat data from the genotype
+#n <- nrow(Z_mat)
+p <- ncol(Z_mat) # number of genotype in depend of Z_mat
+colnames(Z_mat) <- paste0("g", 1:p)
+
+# coefficients for each genotype, this will determine how much the genotype
+# is contributing to the phenotype
+alpha <- runif(p, 0.1, 1)
 
 
+# convert Z_mat as a dataframe to use for the model
+Z_df <- as.data.frame(Z_mat)
+genotype_cols <- select(Z_df, starts_with("g"))
+
+
+# function to compute our phenotype from the genotype
+# here we say that alpha will give the importance of each genotype
+# and this (pheno - min(pheno)) / (max(pheno) - min(pheno))  to remain phenotype between 0 and 1
+pheno <- function(Z_mat, effect_type = "additive", alpha = NULL, epsilon = NULL) {
+  p <- ncol(Z_mat)
+  if (is.null(alpha)) alpha <- runif(p, 0.1, 1)  # genotype weights
+  
+  if (effect_type == "additive") {
+    pheno <- as.vector(as.matrix(Z_mat) %*% alpha)
+  } else if (effect_type == "epistatic") {
+    if (is.null(epsilon)) epsilon <- matrix(runif(p^2, -0.2, 0.2), p, p)
+    pheno <- as.vector(as.matrix(Z_mat) %*% alpha + rowSums((Z_mat %*% epsilon) * Z_mat))
+  }
+  
+  # normalize 0-1
+  pheno <- (pheno - min(pheno)) / (max(pheno) - min(pheno))
+  return(pheno)
+}
+
+pheno <- simulate_pheno(Z_mat, effect_type = "additive")
+
+pheno <- compute_phenotype(genotype_cols, alpha)
+
+# saving the data for random forest
+df <- data.frame(pheno, genotype_cols)
+
+# Random Forest linear regression
+# we consider that each genotype are independent so they could follow the equation:
+# pheno = alpha * g1 + alpha * g2 + ....... + alpha gn
+rf_model <- randomForest(pheno ~ ., data=df,
+                         ntree=500,      # tree number
+                         mtry=2,         # splitting the data to 2 for example
+                         importance=TRUE) # calculate the importance of each variable
+
+# model 
+print(rf_model)
+
+# Importance of each genotype
+importance(rf_model)
+
+# Predicted phenotype
+pred <- predict(rf_model, newdata=df)
+
+# Verify the correaltion between predicted and observed
+cor(pred, df$pheno)
+
+
+
+#-------------------------------------------------------
 # ALLELE FREQUENCY
 # function
 allele_frequency_next_step <- function(genotype_next, L, R) {
@@ -494,4 +559,7 @@ head(allele_long, 20)
 #   return(Q_star)
 # }
 # compute_Qstar(theta, h, v_s)
+
+
+
 
