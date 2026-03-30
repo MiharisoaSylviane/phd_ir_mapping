@@ -1,4 +1,4 @@
-
+#library(randomForest)
 
 # Genotype probability (Hardy-Weinberg)
 probability_genotype_fast <- function(p, L, R) {
@@ -52,74 +52,74 @@ sample_genotype_counts <- function(Z_true, M_z, rho_z) {
 
 
 # Phenotype function
-# Compute locus-level phenotype (U_gc), perlocus level contribution
-
 compute_Ugc <- function(L, R, w, h) {
   G <- nrow(L)
   B <- ncol(L)
-  Ugc <- matrix(NA, nrow = G, ncol = B)
+  f <- matrix(NA, nrow = G, ncol = B)
+  
   for (l in 1:B) {
-    SS <- (L[, l] == 1L & R[, l] == 1L)
-    RR <- (L[, l] == 0L & R[, l] == 0L)
-    SR <- (L[, l] != R[, l])
-    Ugc[, l] <- 1 * SS + w[l] * RR + (h[l] * w[l] + (1 - h[l])) * SR
+    SS <- (L[, l] == 1 & R[, l] == 1)
+    RR <- (L[, l] == 0 & R[, l] == 0)
+    SR <- (L[, l] == 1 & R[, l] == 0) | (L[, l] == 0 & R[, l] == 1)
+    
+    f[, l] <- 1 * SS +
+      w[l] * RR +
+      (h[l] * w[l] + (1 - h[l])) * SR
   }
-  return(Ugc)
+  
+  return(f)
 }
 
-# Compute genotype-level phenotype (combined effects), U_star is the genotype level score
-
-compute_Ustar_combined <- function(Ugc, theta, epsilon) {
+compute_Ustar <- function(Ugc, theta, type = "additive", epsilon = NULL) {
+  
   U_add <- rowSums(Ugc)
   U_mult <- apply(Ugc, 1, prod)
-  pairwise_epi <- apply(Ugc %*% epsilon * Ugc, 1, sum)
   
-  U_star <- U_add + U_mult + pairwise_epi
-  U_star <- U_star / sum(theta)   # scale by theta
-  U_star <- pmin(U_star, 1)       # cap at 1
+  if (type == "additive") {
+    U_star <- U_add
+    
+  } else if (type == "multiplicative") {
+    U_star <- U_mult
+    
+  } else if (type == "epistatic") {
+    if (is.null(epsilon)) stop("epsilon required")
+    pairwise_epi <- rowSums(Ugc %*% epsilon * Ugc)
+    U_star <- U_add + U_mult + pairwise_epi
+  }
+  
+  U_star <- U_star / sum(theta)
   return(U_star)
 }
 
+compute_p_died <- function(U_star) {
+  p <- 1 - U_star
+  p[p < 0] <- 0
+  p[p > 1] <- 1
+  return(p)
+}
 
-# Compute survival over time (population and genotype level)
+simulate_beta_binomial <- function(p, n, phi = 20) {
+  alpha <- p * phi
+  beta  <- (1 - p) * phi
+  p_sample <- rbeta(length(p), alpha, beta)
+  y <- rbinom(length(p), size = n, prob = p_sample)
+  return(list(p_sample = p_sample, y = y))
+}
 
-compute_survival_over_time <- function(Z_list, L, R, w, h, theta, epsilon) {
-  Tmax <- length(Z_list)
-  G <- nrow(L)
+pheno <- function(Z_mat, effect_type = "additive", alpha = NULL, epsilon = NULL) {
+  p <- ncol(Z_mat)
   
-
-  Ugc <- compute_Ugc(L, R, w, h)
-  pheno_genotype <- compute_Ustar_combined(Ugc, theta, epsilon)
+  if (is.null(alpha)) alpha <- runif(p, 0.1, 1)
   
-  pop_survival <- numeric(Tmax)
-  geno_survival <- matrix(NA, nrow = Tmax, ncol = G)
- 
-  # to make the survival dynamic 
-  for (t in 1:Tmax) {
-    freq <- Z_list[[t]]
-    geno_survival[t, ] <- pheno_genotype * freq
-    pop_survival[t] <- sum(pheno_genotype * freq)
+  if (effect_type == "additive") {
+    pheno <- as.vector(as.matrix(Z_mat) %*% alpha)
+    
+  } else if (effect_type == "epistatic") {
+    if (is.null(epsilon)) epsilon <- matrix(runif(p^2, -0.2, 0.2), p, p)
+    pheno <- as.vector(as.matrix(Z_mat) %*% alpha +
+                         rowSums((Z_mat %*% epsilon) * Z_mat))
   }
   
-  return(list(population = pop_survival, genotype = geno_survival))
-}
-
-# Prepare genotype dataframe for plotting
-prepare_geno_df <- function(pheno_res, Tmax) {
-  geno_df <- as.data.frame(pheno_res$genotype[1:Tmax, ])
-  colnames(geno_df) <- paste0("G", 1:ncol(geno_df))
-  geno_df$Time <- 1:Tmax
-  melt(geno_df, id.vars = "Time", variable.name = "Genotype", value.name = "Survival")
-}
-
-
-# Plot survival (population + genotypes)
-plot_survival <- function(df_pop, geno_long, title) {
-  ggplot() +
-    geom_line(data = geno_long, aes(x = Time, y = Survival, color = Genotype), alpha = 0.5) +
-    geom_line(data = df_pop, aes(x = Time, y = Survival), color = "red", size = 1.2) +
-    labs(title = title, x = "Generation", y = "Survival probability") +
-    theme_minimal() +
-    scale_color_viridis_d(option = "plasma") +
-    theme(legend.position = "right")
+  pheno <- (pheno - min(pheno)) / (max(pheno) - min(pheno))
+  return(pheno)
 }
