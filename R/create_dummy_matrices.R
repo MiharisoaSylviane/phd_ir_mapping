@@ -137,7 +137,7 @@ create_dummy_matrices <- function(n_loci) {
     ) %>%
     ungroup() %>%
     # remove the columns we used to compute these
-    select(
+    dplyr::select(
       -heterozygote,
       -left_resistant,
       -redundant
@@ -163,7 +163,7 @@ create_dummy_matrices <- function(n_loci) {
       )
     ) %>%
     # remove the redundant columns
-    select(
+    dplyr::select(
       -hand,
       -allele
     ) %>%
@@ -172,7 +172,7 @@ create_dummy_matrices <- function(n_loci) {
       names_from = locus,
       values_from = susceptible
     ) %>%
-    select(
+    dplyr::select(
       -genotype
     ) %>%
     as.matrix()
@@ -190,7 +190,7 @@ create_dummy_matrices <- function(n_loci) {
       )
     ) %>%
     # remove the redundant columns
-    select(
+    dplyr::select(
       -hand,
       -allele
     ) %>%
@@ -199,7 +199,7 @@ create_dummy_matrices <- function(n_loci) {
       names_from = locus,
       values_from = susceptible
     ) %>%
-    select(
+    dplyr::select(
       -genotype
     ) %>%
     as.matrix()

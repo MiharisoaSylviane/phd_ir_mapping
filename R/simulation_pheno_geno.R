@@ -1,46 +1,44 @@
 
-# MAIN SIMULATION SCRIPT
 # this code contain the main script for simulate our model
 
 #load library
-library(tidyverse)
 library(MCMCpack)
-library(randomForest)
-if (!requireNamespace("remotes", quietly = TRUE)) {
-  install.packages("remotes")
-}
-library(remotes)
+library(tidyverse)
+library(VGAM) 
+library(reshape2)
+#library(randomForest)
+# if (!requireNamespace("remotes", quietly = TRUE)) {
+#   install.packages("remotes")
+# }
+# library(remotes)
+# run function : function_geno_pheno.R and create_dummy_matrices.R
 
 # source functions
-# source_url("https://raw.githubusercontent.com/MiharisoaSylviane/phd_ir_mapping/main/R/function_geno_pheno.R")
-# source_url("https://raw.githubusercontent.com/MiharisoaSylviane/phd_ir_mapping/main/R/create_dummy_matrices.R")
-
-#getwd()
+#getwd() # to see the directory
 setwd("C:/Users/Sylviane/Desktop/training_perth_2024/phd_ir_mapping/R")
-list.files()
-# call function to use the simulation script
-source("function_geno_pheno.R")
-source("create_dummy_matrices.R")
+list.files() # check all files
 
-set.seed(123)
+n_loci <- 5
+# call function to use the simulation script
+source("create_dummy_matrices.R")
+genotype_combination <- create_dummy_matrices(n_loci)
+L <- genotype_combination$left
+L
+R <- genotype_combination$right
 
 # Parameters
-n_loci <- 2
 Tmax <- 20
 M_z <- 200
 rho_z <- 0.05
 p <- runif(n_loci, 0.3, 0.7)
 w <- runif(n_loci, 0.8, 1.4)
 h <- runif(n_loci, 0, 1)
-
+set.seed(123)
 # Create genotype matrices
-genotype_combination <- create_dummy_matrices(n_loci)
-L <- genotype_combination$left
-R <- genotype_combination$right
 G <- nrow(L)
 B <- ncol(L)
 
-
+source("function_geno_pheno.R")
 # Initialize genotype frequencies
 Z_list <- list()
 Z_list[[1]] <- probability_genotype_fast(p, L, R)
@@ -68,48 +66,82 @@ matplot(t(N_mat), type="l", lwd=2, lty=1,
         xlab="Generation", ylab="Observed counts",
         main="Observed counts (Dirichlet-Multinomial)")
 
-# Simulation Script
-# Run the simulation over all generations
-pheno_res <- compute_survival_over_time(Z_list, L, R, w, h, theta, epsilon, effect_type = "additive")
-# Population-level survival dataframe
-df_pop <- data.frame(
-  Time = 1:length(pheno_res$population),
-  Survival = pheno_res$population
+
+# Genotype → Phenotype
+
+theta <- runif(G, 0.5, 1)
+epsilon <- matrix(runif(B^2, -0.2, 0.2), B, B)
+n_tested <- 100
+
+Ugc <- compute_Ugc(L, R, w, h)
+
+U_add  <- compute_Ustar(Ugc, theta, "additive")
+U_mult <- compute_Ustar(Ugc, theta, "multiplicative")
+U_epi  <- compute_Ustar(Ugc, theta, "epistatic", epsilon)
+
+p_add  <- compute_p_died(U_add)
+p_mult <- compute_p_died(U_mult)
+p_epi  <- compute_p_died(U_epi)
+
+alpha <- 0.33; beta <- 0.33; gamma <- 0.34
+U_combined <- alpha * U_add + beta * U_mult + gamma * U_epi
+p_combined <- compute_p_died(U_combined)
+
+
+# Bioassay simulation
+sim_add <- simulate_beta_binomial(p_add, n_tested)
+sim_mult <- simulate_beta_binomial(p_mult, n_tested)
+sim_epi <- simulate_beta_binomial(p_epi, n_tested)
+sim_combined <- simulate_beta_binomial(p_combined, n_tested)
+
+
+# saving data
+
+df <- data.frame(
+  Genotype = 1:G,
+  p_add = p_add,
+  p_mult = p_mult,
+  p_epi = p_epi,
+  p_combined = p_combined,
+  dead_add = sim_add$y,
+  dead_mult = sim_mult$y,
+  dead_epi = sim_epi$y,
+  dead_combined = sim_combined$y
 )
 
-# Plot population-level survival
-ggplot(df_pop, aes(x = Time, y = Survival)) +
-  geom_line(color = "steelblue", size = 1) +
+print(df)
+
+
+# PHENOTYPE OVER TIME
+
+# Compute genotype-level phenotype (fixed over time)
+
+Ugc <- compute_Ugc(L, R, w, h)
+U_star <- compute_Ustar(Ugc, theta, type = "epistatic", epsilon = epsilon)
+
+U_star <- pmin(U_star, 1) # so U_star will belong to 0 to 1
+
+# Compute population phenotype over time
+Tmax <- length(Z_list)
+pheno_time <- numeric(Tmax)
+
+for (t in 1:Tmax) {
+  freq <- Z_list[[t]]              # genotype frequencies at time t
+  pheno_time[t] <- sum(freq * U_star)
+}
+
+# plot phenotype over time
+
+df_pheno <- data.frame(
+  Time = 1:Tmax,
+  Phenotype = pheno_time
+)
+
+ggplot(df_pheno, aes(x = Time, y = Phenotype)) +
+  geom_line(color = "darkgreen", size = 1.2) +
   labs(
-    title = "Population-level survival probability over time",
-    x = "Time (generations)",
-    y = "Survival probability"
+    title = "Population phenotype over time",
+    x = "Generation",
+    y = "Mean phenotype (resistance)"
   ) +
   theme_minimal()
-
-# Per-genotype survival dataframe
-
-geno_df <- as.data.frame(pheno_res$genotype)
-colnames(geno_df) <- paste0("G", 1:ncol(geno_df))
-geno_df$Time <- 1:nrow(geno_df)
-
-geno_long <- melt(
-  geno_df,
-  id.vars = "Time",
-  variable.name = "Genotype",
-  value.name = "Survival"
-)
-
-# Plot per-genotype survival
-ggplot() +
-  geom_line(data = geno_long, aes(x = Time, y = Survival, color = Genotype), alpha = 0.5) +
-  geom_line(data = df_pop, aes(x = Time, y = Survival), color = "red", size = 1.2) +
-  labs(
-    title = "Evolution of mosquito survival probability over time",
-    x = "Time (generations)",
-    y = "Survival probability"
-  ) +
-  theme_minimal() +
-  scale_color_viridis_d(option = "plasma") +
-  theme(legend.position = "right")
-
