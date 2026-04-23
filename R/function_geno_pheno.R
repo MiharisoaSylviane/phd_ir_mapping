@@ -1,46 +1,51 @@
 #library(randomForest)
-
-# Genotype probability (Hardy-Weinberg)
-probability_genotype_fast <- function(p, L, R) {
-  prob_left  <- sweep(L, 2, 1 - p, "*") + sweep(1 - L, 2, p, "*")
-  prob_right <- sweep(R, 2, 1 - p, "*") + sweep(1 - R, 2, p, "*")
-  dup <- 1 + L - R
-  F <- prob_left * prob_right * dup
-  z <- apply(F, 1, prod)
-  z / sum(z)
+# intervention model
+compute_w_greta <- function(betamat, X) {
+  s <- exp(betamat %*% X)
+  1 + s
 }
 
+# Genotype probability (Hardy-Weinberg)
+# probability_genotype_fast_greta <- function(p, L, R) {
+#   prob_left  <- sweep(L, 2, 1 - p, "*") + sweep(1 - L, 2, p, "*")
+#   prob_right <- sweep(R, 2, 1 - p, "*") + sweep(1 - R, 2, p, "*")
+#   dup <- 1 + L - R
+#   F <- prob_left * prob_right * dup
+#   z <- apply(F, 1, prod)
+#   z / sum(z)
+# }
+# greta version
+probability_genotype_fast_greta <- function(p, L, R) {
+  prob_left  <- sweep(L, 2, 1 - p, "*") + sweep(1 - L, 2, p, "*")
+  prob_right <- sweep(R, 2, 1 - p, "*") + sweep(1 - R, 2, p, "*")
+  z <- apply(prob_left * prob_right * dup, 1, "prod")   
+  z / sum(z)
+}
 # Multilocus polygenic selection step
-polygenic_multilocus_next_step <- function(z, w, h, L, R) {
-  G <- nrow(L); B <- ncol(L)
-  Gw <- matrix(NA_real_, nrow = G, ncol = B)
-  for (lo in seq_len(B)) {
-    SS <- (L[, lo] == 1L) & (R[, lo] == 1L)
-    RR <- (L[, lo] == 0L) & (R[, lo] == 0L)
-    SR <- (L[, lo] != R[, lo])
-    Gw[, lo] <- 1 * SS + w[lo] * RR + (h[lo] * w[lo] + (1 - h[lo])) * SR
-  }
-  r_vec <- apply(Gw, 1, prod)
+# polygenic_multilocus_next_step <- function(z, w, h, L, R) {
+#   G <- nrow(L); B <- ncol(L)
+#   Gw <- matrix(NA_real_, nrow = G, ncol = B)
+#   for (lo in seq_len(B)) {
+#     SS <- (L[, lo] == 1L) & (R[, lo] == 1L)
+#     RR <- (L[, lo] == 0L) & (R[, lo] == 0L)
+#     SR <- (L[, lo] != R[, lo])
+#     Gw[, lo] <- 1 * SS + w[lo] * RR + (h[lo] * w[lo] + (1 - h[lo])) * SR
+#   }
+#   r_vec <- apply(Gw, 1, prod)
+#   genotype_post <- z * r_vec
+#   genotype_post / sum(genotype_post)
+# }
+# version Greta
+polygenic_multilocus_next_step_greta <- function(z, w, h, SS_mask, RR_mask, SR_mask) {
+  Gw <- SS_mask +
+    sweep(RR_mask, 2, w, "*") +
+    sweep(SR_mask, 2, h * w + (1 - h), "*")
+  r_vec <- exp(rowSums(log(Gw + 1e-12)))
   genotype_post <- z * r_vec
   genotype_post / sum(genotype_post)
 }
 
-
-# Allele frequency from genotype
-
-allele_frequency_next_step <- function(genotype_next, L, R) {
-  G <- nrow(L); B <- ncol(L)
-  p_next <- numeric(B)
-  for (lo in seq_len(B)) {
-    a_lo <- 2L - L[, lo] - R[, lo]  # SS=0, SR=1, RR=2
-    p_next[lo] <- 0.5 * sum(genotype_next * a_lo)
-  }
-  p_next
-}
-
-
 # Dirichlet-Multinomial sampling
-
 sample_genotype_counts <- function(Z_true, M_z, rho_z) {
   alpha0_z <- (1 - rho_z^2)/rho_z^2
   alpha <- Z_true * alpha0_z
@@ -48,8 +53,51 @@ sample_genotype_counts <- function(Z_true, M_z, rho_z) {
   as.vector(rmultinom(1, M_z, Z_disp))
 }
 
+# gneotype frequency through time
+# simulate_genotype_timecourse <- function(L, R, p, w, h, Tmax, M_z, rho_z) {
+#   Z_list <- list()
+#   Z_list[[1]] <- probability_genotype_fast(p = p, L = L, R = R)
+#   
+#   if (Tmax > 1) {
+#     for (t in 2:Tmax) {
+#       Z_true <- polygenic_multilocus_next_step(
+#         z = Z_list[[t-1]],
+#         w = w,
+#         h = h,
+#         L = L,
+#         R = R
+#       )
+#       Z_list[[t]] <- Z_true
+#     }
+#   }
+#   
+#   N_list <- list()
+#   for (t in seq_len(Tmax)) {
+#     N_list[[t]] <- sample_genotype_counts(Z_true = Z_list[[t]], M_z = M_z, rho_z = rho_z)
+#   }
+#   
+#   Z_mat <- do.call(cbind, Z_list)
+#   N_mat <- do.call(cbind, N_list)
+#   
+#   list(Z_list = Z_list, N_list = N_list, Z_mat = Z_mat, N_mat = N_mat)
+# }
 
-
+# version greta
+simulate_genotype_timecourse_greta <- function(p, w, h, Tmax,
+                                               SS_mask, RR_mask, SR_mask,
+                                               L, R) {
+  Z_list <- vector("list", Tmax)
+  Z_list[[1]] <- probability_genotype_fast_greta(p, L, R)
+  if (Tmax > 1) {
+    for (t in 2:Tmax) {
+      Z_list[[t]] <- polygenic_multilocus_next_step_greta(
+        z = Z_list[[t - 1]], w = w, h = h,
+        SS_mask = SS_mask, RR_mask = RR_mask, SR_mask = SR_mask
+      )
+    }
+  }
+  Z_list
+}
 
 # Phenotype function
 compute_Ugc <- function(L, R, w, h) {
@@ -122,4 +170,16 @@ pheno <- function(Z_mat, effect_type = "additive", alpha = NULL, epsilon = NULL)
   
   pheno <- (pheno - min(pheno)) / (max(pheno) - min(pheno))
   return(pheno)
+}
+
+# Allele frequency from genotype
+
+allele_frequency_next_step <- function(genotype_next, L, R) {
+  G <- nrow(L); B <- ncol(L)
+  p_next <- numeric(B)
+  for (lo in seq_len(B)) {
+    a_lo <- 2L - L[, lo] - R[, lo]  # SS=0, SR=1, RR=2
+    p_next[lo] <- 0.5 * sum(genotype_next * a_lo)
+  }
+  p_next
 }

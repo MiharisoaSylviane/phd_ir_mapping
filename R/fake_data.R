@@ -185,7 +185,7 @@ build_village_data <- function(village_name, latitude, longitude,
     arrange(timepoint, genotype_id)
 }
 
-#  Build mcmc_data for all villages
+#  Build mcmc_data for all villages, the mcmc is the fake data by itslef
 # TIBBLE 2 : master data tibble — one row per village x genotype x timepoint
 # 6 villages x 27 genotypes x 8 timepoints = 1296 rows
 
