@@ -226,9 +226,10 @@ stopifnot(all.equal(unname(fake_counts_matrix_pivoted), unname(fake_counts_matri
 # so we are considering it as the number of mosquitoes tested positive
 observed_counts <- as_data(fake_counts_matrix_pivoted)
 
-# then we apply the likelihood again
+# fitting the data by using his likelihood
 distribution(observed_counts) <- dirichlet_multinomial(size = size_vector, alpha = alpha_matrix)
 
+# estimation of the parameters byb using the model function of greta
 geno_model <- model(betamat, h, rho_z, p_village)
 
 
