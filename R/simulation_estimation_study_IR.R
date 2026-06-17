@@ -277,9 +277,10 @@ draws <- greta::mcmc(
 # investigating that the model given by mcmc is really giving what we are expecting
 
 library(bayesplot)
-bayesplot::mcmc_trace(draws, regex_pars = c("rho_z", "h"))
+mcmc_trace(draws, regex_pars = c("rho_z", "h"))
 
 mcmc_trace(draws, regex_pars = c("p_village"))
 
-estim_summary <- summary(draws)$statistics
+# to get the summary statistic
+statistic_summary <- summary(draws)$statistics
 

@@ -86,7 +86,7 @@ probability_genotype_fast <- function(p){
   dup <- 1 + L - R   
   
   F <- prob_left * prob_right * dup
-  z_unnorm <- apply(F, 1, prod)
+  z <- apply(F, 1, prod)
   z
 }
 ## to test our function
