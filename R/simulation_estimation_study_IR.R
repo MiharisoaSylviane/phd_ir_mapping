@@ -283,9 +283,3 @@ mcmc_trace(draws, regex_pars = c("p_village"))
 
 estim_summary <- summary(draws)$statistics
 
-
-
-
-
-
->>>>>>> 72c3e8cce899e367f19422bb46c267269eaf141c
