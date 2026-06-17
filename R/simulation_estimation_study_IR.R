@@ -282,3 +282,7 @@ bayesplot::mcmc_trace(draws, regex_pars = c("rho_z", "h"))
 mcmc_trace(draws, regex_pars = c("p_village"))
 
 estim_summary <- summary(draws)$statistics
+<<<<<<< HEAD
+=======
+
+>>>>>>> 99f374446a218cd065491aced1d2cc001cac0b68
