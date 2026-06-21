@@ -113,10 +113,18 @@ SR_mask_g <- as_data(SR_mask)
 # betamat the effect covariate on the selection, h: dominance, 
 # rho-z : overdispersion that will be used in the dirichlet distribution
 # p_village : initial allele frequency
-betamat   <- normal(0, 1, dim = c(n_loci, K))             
-h         <- beta(2, 2, dim = n_loci)                      
+### Priors 1
+#betamat   <- normal(0, 1, dim = c(n_loci, K))
+betamat  <- normal(0, 5, dim = c(n_loci, K))
+#### dominance
+#h         <- beta(2, 2, dim = n_loci)  # this is saying that the doominance
+# h is spinning around 0.5
+h      <- uniform(0, 1, dim = n_loci)
+#### overdispersion
 rho_z     <- uniform(0, 1)                                 
-p_village <- uniform(0, 1, dim = c(n_villages, n_loci))    
+p_village <- uniform(0, 1, dim = c(n_villages, n_loci)) 
+
+### 
 
 # 3- calling the function of the probability of having one genotype and getting one genotype
 source("R/function_geno_pheno.R")
@@ -282,6 +290,198 @@ mcmc_trace(draws, regex_pars = c("rho_z", "h"))
 
 mcmc_trace(draws, regex_pars = c("p_village"))
 
+# compare the values of true priors with the posterior priors
+true_p_village
+true_h
+true_betamat
+
+# let's save our posterior in an object
+posterior_draws <- as.matrix(draws)
+
+
 # to get the summary statistic
 statistic_summary <- summary(draws)$statistics
+
+####################################################################
+### 8) Comparing TRUE parameter values (used to simulate fake data)
+###    against the MCMC POSTERIOR draws — values + plots together
+####################################################################
+### 8.1 - Build a lookup: param name -> true value
+# betamat[i,k]  (loci x covariates)
+# reminder to myself that expand_grid is giving all possible combinaiton of
+# a list, sp expand_grid (vect1, vect2)
+# paste0 = create a text value
+# so here we are saying for each possible combination, 
+betamat_truth <- expand_grid(row = seq_len(n_loci), col = seq_len(K)) %>%
+  mutate(
+    param = paste0("betamat[", row, ",", col, "]"),
+    true_value = true_betamat[cbind(row, col)], # select the value of 
+    # based on the row and col values, and put a matrix with
+    family= "betamat",
+    label = paste0("betamat,[", locus_names[row], ", cov", col, "]" )
+  )
+
+
+# because tibble is more for scalar and vectors
+# and our h is more a vector, as it is changing based on the loci 
+# dominance will also changed based on the type of insecticide
+#  but as here we don't consider insecticide type yet then we
+# we are assuming that dominance change based on gene
+h_truth <- tibble(
+  row= seq_len(n_loci),
+  param = paste0("h[", row, ",1]"),
+  true_value = as.numeric(true_h),
+  family = "h",
+  label = paste0("h[", locus_names, "]")
+)
+
+
+# rho_z is a scalar
+rho_z_truth <- tibble(
+  param = "rho_z",
+  true_value = as.numeric(true_rho_z),
+  family = "rho_z",
+  label = "rho_z"
+)
+
+# p_village: which depend on the loci and the village
+# next step should be in depend of the type of insecticide 
+# so it is a matrix with row = n_villages and col = n_loci
+p_truth <- expand.grid(row = seq_len(n_villages), col = seq_len(n_loci)) %>%
+  mutate(
+    param  = paste0("p_village[", row, ",", col, "]"),
+    true_value = true_p_village[cbind(row, col)],
+    family = "p_village",
+    label  = paste0("p[", villages$village[row], ", ", locus_names[col])
+  )
+
+# here we are trying to get a dataframe to show the value of the 4 parameters
+# parameters_combined <- bind_rows(betamat_truth, h_truth, rho_z_truth, p_truth)
+parameters_combined<- bind_rows(
+  betamat_truth %>% dplyr::select(param, true_value, family, label),
+  h_truth        %>% dplyr::select(param, true_value, family, label),
+  rho_z_truth      %>% dplyr::select(param, true_value, family, label),
+  p_truth        %>% dplyr::select(param, true_value, family, label)
+)
+
+setdiff(parameters_combined$param, colnames(posterior_draws))
+
+##############################################
+### 8.2 - Long-format posterior draws + attach truth
+##############################################
+posterior_long <- as_tibble(posterior_draws) %>%
+  mutate(draw = row_number()) %>%
+  pivot_longer(-draw, names_to = "param", values_to = "posterior_value") %>%
+  inner_join(parameters_combined, by = "param")
+
+##############################################
+### 8.3 - Numeric summary table: posterior vs truth
+##############################################
+
+recovery_summary <- posterior_long %>%
+  group_by(family, label, param, true_value) %>%
+  summarise(
+    post_mean   = mean(posterior_value),
+    post_median = median(posterior_value),
+    post_sd     = sd(posterior_value),
+    # the ci_low is telling us the 2.5% of the posterior value is low
+    # than the ci_low
+    ci_low      = quantile(posterior_value, 0.025),
+    # ci_high is telling us that that 97.5 % of the posterior value is 
+    # low than ci_high
+    ci_high     = quantile(posterior_value, 0.975),
+    rmse        = sqrt(mean((posterior_value - true_value)^2)),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    bias          = post_mean - true_value,
+    # so here we have the credible intervals that telling us that
+    # there is 95% that the true parameters values lies within that range
+    # so it means true_value is greater than the low_ci and less than ci_high
+    covered_95    = true_value >= ci_low & true_value <= ci_high,
+  ) %>%
+  arrange(family, label)
+
+#write_csv(recovery_summary, "dataoutput/recovery_summary1.csv")  
+
+# we read the recovery_summary here
+recovery_summary_weak <- read.csv("dataoutput/recovery_summary2.csv")
+recovery_summary_wide <- recovery_summary
+
+# changing the name of the dataframe
+recovery_summary_tight <- recovery_summary_weak%>% mutate(prior_setup = "tight")
+recovery_summary_wide  <- recovery_summary_wide  %>% mutate(prior_setup = "wide")
+recovery_compare <- bind_rows(recovery_summary_tight, recovery_summary_wide)
+
+# to get both data together
+recovery_diff <- recovery_summary_tight %>%
+  dplyr::select(family, label, param, true_value,
+         post_mean_tight = post_mean, ci_low_tight = ci_low, ci_high_tight = ci_high,
+         rmse_tight = rmse, bias_tight = bias, covered_95_tight = covered_95) %>%
+  inner_join(
+    recovery_summary_wide %>%
+      dplyr::select(param,
+             post_mean_wide = post_mean, ci_low_wide = ci_low, ci_high_wide = ci_high,
+             rmse_wide = rmse, bias_wide = bias, covered_95_wide = covered_95),
+    by = "param"
+  ) %>%
+  mutate(
+    ci_width_tight  = ci_high_tight - ci_low_tight,
+    ci_width_wide   = ci_high_wide  - ci_low_wide,
+    rmse_diff       = rmse_wide - rmse_tight,        
+    ci_width_diff   = ci_width_wide - ci_width_tight, 
+    rmse_pct_change = 100 * (rmse_wide - rmse_tight) / rmse_tight
+  ) %>%
+  arrange(family, label)
+
+write.csv(recovery_diff, "dataoutput/comparison_param.csv")
+## plotting rmse
+p_rmse_compare <- recovery_compare %>%
+  mutate(label = fct_reorder(label, rmse)) %>%
+  ggplot(aes(x = label, y = rmse, fill = prior_setup)) +
+  geom_col(position = position_dodge(width = 0.7), width = 0.6) +
+  coord_flip() +
+  facet_wrap(~family, scales = "free", ncol = 1) +
+  scale_fill_manual(values = c(tight = "steelblue", wide = "darkorange")) +
+  labs(title = "RMSE by parameter: tight vs wide prior", x = NULL, y = "RMSE", fill = "Prior setup") +
+  theme_minimal(base_size = 11)
+
+print(p_rmse_compare)
+##############################################
+### 8.4 - Plot 1: posterior density per parameter,
+###       true value drawn as a vertical line
+##############################################
+
+plot_family <- function(fam_name) {
+  df <- posterior_long %>% filter(family == fam_name)
+  truths <- parameters_combined %>% filter(family == fam_name)
+  
+  ggplot(df, aes(x = posterior_value)) +
+    geom_density(fill = "steelblue", alpha = 0.4, colour = "steelblue") +
+    geom_vline(
+      data = truths,
+      aes(xintercept = true_value),
+      colour = "firebrick", linewidth = 0.9, linetype = "dashed"
+    ) +
+    facet_wrap(~label, )
+    labs(
+      title = paste0("Posterior recovery — ", fam_name),
+      subtitle = "Blue = posterior density, red dashed = true (simulated) value",
+      x = "value", y = "density"
+    ) +
+    theme_minimal(base_size = 12)
+}
+
+p_betamat   <- plot_family("betamat")
+p_h         <- plot_family("h")
+p_rho       <- plot_family("rho_z")
+p_p_village <- plot_family("p_village")
+
+print(p_betamat)
+print(p_h)
+print(p_rho)
+print(p_p_village)
+
+
+
 
