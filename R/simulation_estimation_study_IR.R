@@ -6,20 +6,14 @@
 #   2) define priors (betamat (effect of intervention), dominance (h), overdispersion (rho_z),
 #   initial allele_frequency (p))
 #   3) calling the function of the probability of having one genotype and getting one genotype
+#   3) calling the function of the phenotype of each genotype
 #   4) Fake data generating with the prior and likelihood
 #   5) Plotting the DAG to see the nodes, plot the parameters by using mcmc_draws
 #   6) Estimate the parameters (betamat, h, rho-z and p) by using mcmc package and the fake data
 #   7) Interpreting the results of the mcmc 
 
-### Loading Library
-library(tidyverse)
-library(MCMCpack)
-library(coda)
-library(greta)
-library(DiagrammeR)
-library(DiagrammeRsvg)
-library(rsvg)
-
+# Loading packages
+source("R/Packages.R")
 set.seed(123)
 #############################################################
 ### 1- Defining all fix data, we consider as known
@@ -59,7 +53,7 @@ n_villages <- nrow(villages)
 Tmax <- 2
 
 # number of mosquitoes tested
-M_z <- 100
+M_z <- 10
 
 
 ## Covariates per village
@@ -116,15 +110,23 @@ SR_mask_g <- as_data(SR_mask)
 ### Priors 1
 #betamat   <- normal(0, 1, dim = c(n_loci, K))
 betamat  <- normal(0, 5, dim = c(n_loci, K))
+
 #### dominance
 #h         <- beta(2, 2, dim = n_loci)  # this is saying that the doominance
 # h is spinning around 0.5
 h      <- uniform(0, 1, dim = n_loci)
 #### overdispersion
-rho_z     <- uniform(0, 1)                                 
-p_village <- uniform(0, 1, dim = c(n_villages, n_loci)) 
+rho_z     <- uniform(0, 1)  # to avoid 0 and extreme value like 100 in n_observed                              
 
-### 
+p_village <- uniform(0, 1, dim = c(n_villages, n_loci)) 
+# overdispersion for the phenotype/bioassay data
+phi_add  <- lognormal(log(20), 0.5) 
+phi_mult <- lognormal(log(20), 0.5)
+
+### theta is the locus-specific, insecticide-specific effect\
+# meaning the contribution of a particular genetic locus to resistance against 
+#  a particular insecticide
+theta <- uniform(0, 1, dim = c(n_villages * Tmax, n_loci))
 
 # 3- calling the function of the probability of having one genotype and getting one genotype
 source("R/function_geno_pheno.R")
@@ -142,8 +144,10 @@ village_vec <- integer(n_villages * Tmax)
 time_vec    <- integer(n_villages * Tmax)
 row_id <- 1
 
-# function to simulate
+pdied_add_rows  <- vector("list", n_villages * Tmax)
+pdied_mult_rows <- vector("list", n_villages * Tmax)  
 
+# function to simulate
 for (i in seq_len(n_villages)) {
   
   w_i <- compute_w_greta(betamat, X_villages[i, ])
@@ -162,11 +166,22 @@ for (i in seq_len(n_villages)) {
   
   for (t in seq_len(Tmax)) {
     # genotype frequency (1 X G)
-    Z_rows[[row_id]]     <- t(Z_list_i[[t]])                    
+    Z_rows[[row_id]]     <- t(Z_list_i[[t]])
     alpha_rows[[row_id]] <- Z_rows[[row_id]] * alpha0_z + 1e-8   
     village_vec[row_id]  <- i
-    time_vec[row_id]      <- t
-    row_id <- row_id + 1
+    time_vec[row_id]    <- t
+    theta_it            <- t(theta[row_id, ])
+    Ugc <- compute_Ugc(theta_it, h, SS_mask_g, RR_mask_g, SR_mask_g)
+    
+    # U_add_i  <- compute_Ustar_additive(Ugc_i, theta)
+    U_add_i <- compute_Ustar_additive(Ugc, theta_it)
+    U_mult_i <- compute_Ustar_multiplicative(Ugc, theta_it)
+    
+    # pdied_add_rows[[i]]  <- t(compute_p_died(U_add_i))
+    pdied_add_rows[[row_id]] <- t(compute_p_died(U_add_i))
+    pdied_mult_rows[[row_id]] <- t(compute_p_died(U_mult_i))
+    row_id              <- row_id + 1
+    
   }
 }
 
@@ -175,11 +190,14 @@ Z_matrix     <- do.call(greta::abind, c(Z_rows, list(along = 1)))
 # (n_villages*Tmax) x G
 alpha_matrix <- do.call(greta::abind, c(alpha_rows, list(along = 1)))  
 size_vector  <- rep(M_z, length(alpha_rows))  
-
+# n_villages x G
+p_died_add_matrix  <- do.call(greta::abind, c(pdied_add_rows,  list(along = 1)))
+p_died_mult_matrix <- do.call(greta::abind, c(pdied_mult_rows, list(along = 1)))
 #########################################################
 ### 4- Fake data generating with the prior and likelihood
 #########################################################
-sim_result <- calculate(alpha_matrix, Z_matrix, betamat, h, rho_z, p_village, nsim = 1)
+#sim_result <- calculate(alpha_matrix, theta, Z_matrix, betamat, h, rho_z, p_village, p_died_mult_matrix, nsim = 1)
+sim_result <- calculate(alpha_matrix, theta, Z_matrix, betamat, h, rho_z, p_village, p_died_add_matrix, p_died_mult_matrix, nsim = 1)
 # (n_villages*Tmax) x G
 alpha_numeric  <- sim_result$alpha_matrix[1, , ] 
 # (n_villages*Tmax) x G
@@ -189,13 +207,26 @@ true_h         <- sim_result$h[1, , ]
 true_rho_z     <- as.numeric(sim_result$rho_z)[1]
 true_p_village <- sim_result$p_village[1, , ]
 
-# Likelihood
+true_theta          <- sim_result$theta[1, , ]
+true_p_died_add      <- sim_result$p_died_add_matrix[1, , ]
+true_p_died_mult      <- sim_result$p_died_mult_matrix[1, , ]
+# Gneotype count
+# Likelihood, a here is one row of the alpha_numeric at a time
 fake_counts_matrix <- t(apply(alpha_numeric, 1, function(a) {
   z_disp <- as.numeric(MCMCpack::rdirichlet(1, a))
   as.vector(rmultinom(1, M_z, z_disp / sum(z_disp)))
+  
 }))
 
 n_tested_vec <- rowSums(fake_counts_matrix) 
+
+# Phenotype count
+
+fake_dead_add  <- matrix(rbinom(length(true_p_died_add),  M_z, true_p_died_add),
+                         nrow = n_villages * Tmax)
+fake_dead_mult <- matrix(rbinom(length(true_p_died_mult), M_z, true_p_died_mult),
+                         nrow = n_villages * Tmax)
+
 
 # tibble of the fake data we tried before: row =  village x génotype x timepoint
 mcmc_data_all_sim <- map_dfr(seq_len(nrow(fake_counts_matrix)), function(r) {
@@ -207,7 +238,11 @@ mcmc_data_all_sim <- map_dfr(seq_len(nrow(fake_counts_matrix)), function(r) {
       timepoint  = time_vec[r],
       village    = villages$village[village_vec[r]],
       latitude   = villages$latitude[village_vec[r]],
-      longitude  = villages$longitude[village_vec[r]]
+      longitude  = villages$longitude[village_vec[r]],
+      p_died_add_true     = true_p_died_add[r, ],     
+      p_died_mult_true    = true_p_died_mult[r, ],     
+      dead_add_observed   = fake_dead_add[r, ],        
+      dead_mult_observed  = fake_dead_mult[r, ] 
     )
 })
 
@@ -226,20 +261,60 @@ fake_counts_matrix_pivoted <- mcmc_data_all_sim %>%
   dplyr::select(-village_id, -timepoint) %>%
   as.matrix()
 # view(fake_counts_matrix_pivoted)
+dead_add_matrix_pivoted <- mcmc_data_all_sim %>%
+  arrange(village_id, timepoint, genotype_id) %>%
+  pivot_wider(
+    id_cols     = c(village_id, timepoint),
+    names_from  = genotype_id,
+    values_from = dead_add_observed
+  ) %>%
+  arrange(village_id, timepoint) %>%
+  dplyr::select(-village_id, -timepoint) %>%
+  as.matrix()
+
+dead_mult_matrix_pivoted <- mcmc_data_all_sim %>%
+  arrange(village_id, timepoint, genotype_id) %>%
+  pivot_wider(
+    id_cols     = c(village_id, timepoint),
+    names_from  = genotype_id,
+    values_from = dead_mult_observed
+  ) %>%
+  arrange(village_id, timepoint) %>%
+  dplyr::select(-village_id, -timepoint) %>%
+  as.matrix()
 
 # we have to verify if it has the same format that data that our model is giving
 #  here we named it fake_counts_matrix
+stopifnot(all.equal(unname(dead_add_matrix_pivoted),  unname(fake_dead_add)))
+stopifnot(all.equal(unname(dead_mult_matrix_pivoted), unname(fake_dead_mult)))
+
+
 stopifnot(all.equal(unname(fake_counts_matrix_pivoted), unname(fake_counts_matrix)))
 
-# so we are considering it as the number of mosquitoes tested positive
-observed_counts <- as_data(fake_counts_matrix_pivoted)
-
+observed_counts             <- as_data(fake_counts_matrix_pivoted)
+observed_counts_pheno_add   <- as_data(dead_add_matrix_pivoted)
+observed_counts_pheno_mult  <- as_data(dead_mult_matrix_pivoted)
 # fitting the data by using his likelihood
-distribution(observed_counts) <- dirichlet_multinomial(size = size_vector, alpha = alpha_matrix)
+## genotype
+distribution(observed_counts)            <- dirichlet_multinomial(size = size_vector, alpha = alpha_matrix)
+# phenotype Betabinomial
+## additive
+alpha_beta_add <- p_died_add_matrix * phi_add
+beta_beta_add  <- (1 - p_died_add_matrix) * phi_add
+p_sample_add   <- beta(alpha_beta_add, beta_beta_add)
+
+## multiplicative
+alpha_beta_mult <- p_died_mult_matrix * phi_mult
+beta_beta_mult  <- (1 - p_died_mult_matrix) * phi_mult
+p_sample_mult   <- beta(alpha_beta_mult, beta_beta_mult)
+
+distribution(observed_counts_pheno_add)  <- binomial(size = M_z, prob = p_sample_add)
+distribution(observed_counts_pheno_mult) <- binomial(size = M_z, prob = p_sample_mult)
+# distribution(observed_counts_pheno_add)  <- binomial(size = M_z, prob = p_died_add_matrix)
+# distribution(observed_counts_pheno_mult) <- binomial(size = M_z, prob = p_died_mult_matrix)
 
 # estimation of the parameters byb using the model function of greta
-geno_model <- model(betamat, h, rho_z, p_village)
-
+geno_model <- model(betamat, h, rho_z, p_village, theta)
 
 # 5- Plotting the DAG to see the nodes, plot the parameters by using mcmc_draws
 # this code was trying to get the png of the dag but it didn't work
@@ -256,7 +331,7 @@ geno_model <- model(betamat, h, rho_z, p_village)
 dag <- plot(geno_model)
 # this is the code to get the best version of the dag
 svg_code <- export_svg(dag)
-rsvg_png(charToRaw(svg_code), file = "dataoutput/1IRattempt_dag.png", width = 3000, height = 1200)
+rsvg_png(charToRaw(svg_code), file = "dataoutput/2IRattempt_dag.png", width = 3000, height = 1200)
 
 dev.list() # this is to check because here our code were stuck at the dag graph
 dev.off() # this is to remove all images
@@ -463,7 +538,7 @@ plot_family <- function(fam_name) {
       aes(xintercept = true_value),
       colour = "firebrick", linewidth = 0.9, linetype = "dashed"
     ) +
-    facet_wrap(~label, )
+    facet_wrap(~label)
     labs(
       title = paste0("Posterior recovery — ", fam_name),
       subtitle = "Blue = posterior density, red dashed = true (simulated) value",
@@ -481,7 +556,5 @@ print(p_betamat)
 print(p_h)
 print(p_rho)
 print(p_p_village)
-
-
 
 
