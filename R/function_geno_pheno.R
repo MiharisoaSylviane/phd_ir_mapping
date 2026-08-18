@@ -5,6 +5,12 @@ compute_w_greta <- function(betamat, X) {
   1 + s
 }
 
+## to get the selection pressure advantage of resistant allele
+compute_s_greta <- function(betamat, X) {
+  s <- exp(betamat %*% X)
+  return(s)
+}
+
 # Genotype probability (Hardy-Weinberg)
 # probability_genotype_fast_greta <- function(p, L, R) {
 #   prob_left  <- sweep(L, 2, 1 - p, "*") + sweep(1 - L, 2, p, "*")
@@ -19,9 +25,13 @@ probability_genotype_fast_greta <- function(p, L, R) {
   prob_left  <- sweep(L, 2, 1 - p, "*") + sweep(1 - L, 2, p, "*")
   prob_right <- sweep(R, 2, 1 - p, "*") + sweep(1 - R, 2, p, "*")
   dup <- 1 + L - R
-  z <- apply(prob_left * prob_right * dup, 1, "prod")   
+  # z <- apply(prob_left * prob_right * dup, 1, "prod")
+  z <- exp(log(prob_left * prob_right * dup + 1e-12) %*% rep(1, ncol(L)))
+  # z <- exp(rowSums(log(prob_left * prob_right * dup + 1e-12)))
   z / sum(z)
 }
+
+
 # Multilocus polygenic selection step
 # polygenic_multilocus_next_step <- function(z, w, h, L, R) {
 #   G <- nrow(L); B <- ncol(L)
@@ -41,10 +51,13 @@ polygenic_multilocus_next_step_greta <- function(z, w, h, SS_mask, RR_mask, SR_m
   Gw <- SS_mask +
     sweep(RR_mask, 2, w, "*") +
     sweep(SR_mask, 2, h * w + (1 - h), "*")
-  r_vec <- exp(rowSums(log(Gw + 1e-12)))
+  r_vec <- exp(log(Gw + 1e-12) %*% rep(1, ncol(Gw)))
+  # r_vec <- exp(rowSums(log(Gw + 1e-12)))
+  # r_vec <- apply(Gw, 1, "prod")
   genotype_post <- z * r_vec
   genotype_post / sum(genotype_post)
 }
+
 
 # Dirichlet-Multinomial sampling
 sample_genotype_counts <- function(Z_true, M_z, rho_z) {
@@ -119,10 +132,16 @@ simulate_genotype_timecourse_greta <- function(p, w, h, Tmax,
 #   return(f)
 # }
 ### PHENOTYPE FUNCTION
+# compute_Ugc <- function(theta, h, SS_mask, RR_mask, SR_mask) {
+#   SS_mask +
+#     sweep(RR_mask, 2, theta, "*") +
+#     sweep(SR_mask, 2, h * theta + (1 - h), "*")
+# }
+
 compute_Ugc <- function(theta, h, SS_mask, RR_mask, SR_mask) {
-  SS_mask +
-    sweep(RR_mask, 2, theta, "*") +
-    sweep(SR_mask, 2, h * theta + (1 - h), "*")
+  sweep(RR_mask, 2, theta, "*") +
+    sweep(SR_mask, 2, h * theta, "*")
+  # SS_mask contributes nothing — omitted entirely, since susceptible = 0 hazard
 }
 
 # compute_Ustar <- function(Ugc, theta, type = "", epsilon = NULL) {
@@ -156,15 +175,25 @@ compute_Ugc <- function(theta, h, SS_mask, RR_mask, SR_mask) {
 ## the insecticide will be metabolised by the enzyme metabolic then pass
 ## and will arrive in the target site gene but this gene already modified
 ##  the proteins
-compute_Ustar_multiplicative<- function(Ugc, theta, epsilon = NULL) {
-  
-  #U_mult <- apply(Ugc, 1, prod)
-  U_mult <- exp(rowSums(log(Ugc + 1e-12)))
+# compute_Ustar_multiplicative<- function(Ugc, theta, epsilon = NULL) {
+#   
+#   # U_mult <- apply(Ugc, 1, "prod")
+#   # U_mult <- exp(rowSums(log(Ugc + 1e-12)))
+#   U_mult <- exp(log(Ugc + 1e-12) %*% rep(1, ncol(Ugc)))
+#   U_star <- U_mult # normailizing this with sum(theta was a bad idea)
+#   return(U_star)
+# }
 
-  U_star <- U_mult # normailizing this with sum(theta was a bad idea)
-  return(U_star)
-}
-
+# compute_Ustar_multiplicative <- function(Ugc, theta = NULL, epsilon = NULL) {
+#   U_mult <- exp(log(Ugc + 1e-12) %*% rep(1, ncol(Ugc)))
+#   return(U_mult)
+# }
+# 
+# compute_p_died_multiplicative <- function(U_star) {
+#   eps <- 1e-6
+#   p <- eps + (1 - 2 * eps) * U_star
+#   return(p)
+# }
 # additive (contribution for the protection)
 # assumptions is govern by the assumptions:
 
@@ -172,13 +201,20 @@ compute_Ustar_multiplicative<- function(Ugc, theta, epsilon = NULL) {
 ## so here it's not like checking anymore but each resistance will
 ## add some protection to the mosquitoes so acting on the survival
 compute_Ustar_additive <- function(Ugc, theta, epsilon = NULL) {
-  
-  U_add <- rowSums(Ugc)
-  
-  U_star <- U_add / ncol(Ugc) # here I some it by the total of Ugc instead of theta
+  # U_add <- apply(Ugc, 1, "sum")
+  U_add <- Ugc %*% rep(1, ncol(Ugc))
+  # U_add <- rowSums(Ugc)
+  U_star <- U_add # here I some it by the total of Ugc instead of theta
   # this should be discussed with Nick
   return(U_star)
 }
+
+## computing U_star
+compute_p_died_additive <- function(U_star) {
+  p <- 1 - exp(-U_star)
+  return(p)
+}
+
 
 # compute_p_died <- function(U_star) {
 #   p <- 1 - U_star
@@ -193,11 +229,11 @@ compute_Ustar_additive <- function(Ugc, theta, epsilon = NULL) {
 #   p <- p * (p <= 1) + (p > 1)   # cap anything above 1 at exactly 1
 #   return(p)
 # }
-compute_p_died <- function(U_star) {
-  eps <- 1e-6
-  p <- eps + (1 - 2*eps) * U_star   # linearly rescales [0,1] into (eps, 1-eps)
-  return(p)
-}
+# compute_p_died_multiplicative <- function(U_star) {
+#   eps <- 1e-6
+#   p <- eps + (1 - 2*eps) * U_star   # linearly rescales [0,1] into (eps, 1-eps)
+#   return(p)
+# }
 # this is to model the phenotype based on his likelihood here
 
 simulate_beta_binomial <- function(p, n, phi = 20) {
@@ -208,6 +244,27 @@ simulate_beta_binomial <- function(p, n, phi = 20) {
   return(list(p_sample = p_sample, y = y))
 }
 
+
+betabinomial_p_rho <- function(N, p, rho) {
+  
+  # model the observation (betabinomial) sd as a multiplier on the binomial sd,
+  # accounting for additional error due to nonindependent sampling of individuals
+  # from the population. This is based on the INLA parameterisation
+  
+  # solve for a and b:
+  #   p = a / (a + b)
+  #   rho = 1 / (a + b + 1)
+  a <- p * (1 / rho - 1)
+  b <- a * (1 - p) / p
+  
+  # define betabinomial according to the greta interface
+  beta_binomial(size = N, alpha = a, beta = b)
+  
+}
+
+nearish <- function(x, y) {
+  dplyr::near(x, y, tol = 1e-2)
+}
 # pheno <- function(Z_mat, effect_type = "additive", alpha = NULL, epsilon = NULL) {
 #   p <- ncol(Z_mat)
 #   
@@ -226,16 +283,22 @@ simulate_beta_binomial <- function(p, n, phi = 20) {
 #   return(pheno)
 # }
 
-
+getwd()
 
 # Allele frequency from genotype
 
-allele_frequency_next_step <- function(genotype_next, L, R) {
-  G <- nrow(L); B <- ncol(L)
-  p_next <- numeric(B)
-  for (lo in seq_len(B)) {
-    a_lo <- 2L - L[, lo] - R[, lo]  # SS=0, SR=1, RR=2
-    p_next[lo] <- 0.5 * sum(genotype_next * a_lo)
-  }
-  p_next
+# allele_frequency_next_step <- function(genotype_next, L, R) {
+#   G <- nrow(L); B <- ncol(L)
+#   p_next <- numeric(B)
+#   for (lo in seq_len(B)) {
+#     a_lo <- 2L - L[, lo] - R[, lo]  # SS=0, SR=1, RR=2
+#     p_next[lo] <- 0.5 * sum(genotype_next * a_lo)
+#   }
+#   p_next
+# }
+
+allele_frequency_from_genotype_greta <- function(Z, L, R) {
+  a_mat <- 2 - L - R   # G x n_loci: SS=0, SR=1, RR=2 resistant-allele count
+  p_alleles <- 0.5 * (t(a_mat) %*% Z)   # (n_loci x G) %*% (G x 1) = n_loci x 1
+  return(p_alleles)
 }
