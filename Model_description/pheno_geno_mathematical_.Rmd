@@ -9,128 +9,150 @@ output:
   pdf_document: default
 ---
 
-MODELING THE ASSOCITATION GENOTYPE AND PHENOTYPE in ANOPHELES MOSQUITOES IN AFRICA
+MODELING THE ASSOCITATION GENOTYPE AND PHENOTYPE in ANOPHELES MOSQUITOES
+IN AFRICA
 
-## I- Data inputs 
- • WHO discriminating concentration bioassay results from the Vector Atlas database,incorporating data from IR Mapper and WHO Malaria Threats Map.
- • Vector Atlas data results about genotype frequency
- • Covariate data :
-     - Modelled use of ITNs 2000-2022 (MAP, see Bertozzi-villa et al. 2021) 
-     - Reported coverage of IRS 1997-2022 (WHO/MAP) - Population density 2000-2030 (Worldpop/MAP, adjusted to UN forecasts 2021-2030) 
+## I- Data inputs
 
+• WHO discriminating concentration bioassay results from the Vector
+Atlas database,incorporating data from IR Mapper and WHO Malaria Threats
+Map. • Vector Atlas data results about genotype frequency • Covariate
+data : - Modelled use of ITNs 2000-2022 (MAP, see Bertozzi-villa et al.
+2021) - Reported coverage of IRS 1997-2022 (WHO/MAP) - Population
+density 2000-2030 (Worldpop/MAP, adjusted to UN forecasts 2021-2030)
+
+## Notation
+
+## **Indices**
+
+| Symbol | Meaning           |
+|--------|-------------------|
+| $l$    | location          |
+| $t$    | time              |
+| $lo$   | locus             |
+| $g$    | genotype          |
+| $k$    | covariates        |
+| $c$    | class insecticide |
+
+## **Parameters**
+
+| Symbol | Meaning |
+|----|----|
+| $theta_{lo}$ | residual susceptibility of the resistant genotype RR = probability that a homozygous R mosquito still dies on exposure |
+| $h_lo$ | dominance |
+| $beta_{k.lo}$ | how strongly each thing in the environment, like bed net coverage, pushes resistance to spread |
+| $rho_z$ | genotype overdispersion |
+| $P_{l,lo,0}$ | initial allele frequency |
+| $\phi_{add}$ | bioassay overdispersion |
+| $\phi_{a}$ | allele frequency overdispersion |
+| $\alpha_{g,l,t}$ | Dirichlet concentration |
+| $rho_{a}$ | allele overdispersion |
+
+## **Estimated Values**
+
+| Symbol\| Meaning \| |   |
+|----|----|
+| $U_{g,lo}$ \| per-locus susceptibility contribution \| |  |
+| $U^{*}_{g}$ \| genotype-level probability of death (phenotype of each genotype) \| |  |
+| $s_{lo,l}$ \| selection pressure \| |  |
+| $w_{lo,l}$ \| relative fitness \| |  |
+| $Z_{g,l,t}$ \| multilocus genotype \| |  |
+| $P_{l,lo,t}$ \| allele frequency at a specific locus \| |  |
+| $Q^{*}_{l,t}$\| susceptibility of the population \| |  |
+| $N_{lo,t}^{a}$ | number of mosquitoes carrying a specific allele at a specific locus |
 
 ## II - Observation models
-## 1-  Bioassay data 
-Given data on $N_{i,j}$ mosquitoes tested and $D_(i,j)$ deaths observed, we assume these counts follow a Beta–Binomial distribution: and , the observed numbers of mosquitoes tested, and that died,we assume these follow a beta-binomial distribution:
+
+## 1- Bioassay data
+
+Given data on $N_{l,t}$ mosquitoes tested and $D_{l,t}$ deaths observed,
+we assume these counts follow a Beta–Binomial distribution: and , the
+observed numbers of mosquitoes tested, and that died,we assume these
+follow a beta-binomial distribution:
 
 $$
-D_{j,i} \sim Betabinomial(N, Q*, \rho)
+D_{l,t} \sim Betabinomial(N-{l,t}, Q^{*}_{l,t}, \phi)
 $$
 
-Where $Q*$ is the modelled population-level susceptibility of the total vector population at the location $l$ and time $t$ from which this sample of mosquitoes was collected. The overdispersion parameter $\rho$ is specific to the insecticide class $c(j)$ of insectcide $j$, capturing the non-independence of individuals mosquitoes within the same bioassay sample. This accounts for the extra variability in mortality observed across different samples, reflecting the inherent heterogeneity in susceptibility measurements.
+Where $Q^{*}$ is the modelled population-level susceptibility of the
+total vector population at the location $l$ and time $t$ from which
+thissample of mosquitoes was collected. The overdispersion parameter
+$\phi$ captures the non-independence of individual mosquitoes within the
+same bioassay sample, accounting for extra variability in mortality
+across samples and reflecting heterogeneity in susceptibility.
 
 ### Genotype test results for multilocus:
 
-Let $M_z$denote the number of mosquitoes tested and  $N_z$ the number positive for genotype $g$ in a given record. Here, $Z$ represents the vector of genotype frequencies in the population at the location and time of sampling. When multiple genotype categories are considered, we model these counts using a Dirichlet–Multinomial distribution, which accounts for both the multinomial sampling of genotypes and extra variability (overdispersion) in the population frequencies.
+Let $M_z$denote the number of mosquitoes tested and $N_z$ the vector of
+counts across the mutli-locus genotype $g$ in a given record. Here,
+$Z_{lo,t}$ represents the vector of genotype frequencies in the
+population at the location and time of sampling. When multiple genotype
+categories are considered, we model these counts using a
+Dirichlet–Multinomial distribution, which accounts for both the
+multinomial sampling of genotypes overdispersion $\alpha_{g,l,t}$ in the
+population frequencies.
 
 $$
-N^{z} \sim DirMultinomial( M^{z}, Z, \rho_z)
+N^{z} \sim DirMultinomial( M^{z}, Z, \alpha_{g,l,t})
+$$ with concentration vector
+
+$$
+\alpha_{g,l,t} = Z_{g,l,t} \, \alpha_{0}, \qquad
+\alpha_{0} = \frac{1 - \rho_z^{2}}{\rho_z^{2}}
 $$
 
-### Genotype test results for single locus: 
-Let $N_{lo}^u$ denote the number of mosquitoes positive for a particular genotype at locus $lo$, and let $M^{u}$ be the total number of mosquitoes tested. Assuming Hardy–Weinberg equilibrium (HWE) with resistant-allele frequency $p$ (so $$p + q = 1$$ and $$q = 1 − p$$ for the susceptible allele), the expected genotype frequencies in the population are given by
+so that $\rho_z \in (0,1)$ is interpreted as an intra-class correlation:
+$\rho_z \to 0$ recovers the multinomial, $\rho_z \to 1$ gives maximal
+overdispersion
 
-$$(U_{l_0,t} = p_{lo,t}^2, 2p_{lo,t} q_{lo,t}, q_{lo,t}^2)$$
+### Allele frequency data
 
-
-And the over-dispersion $rho_{u}$ via a Dirichlet–Multinomial:
-$$
-N^{u} \sim DirMultinomial (M^{u}, U, \rho_{u})
-$$ 
-
-### Allele frequency data: 
-We consider $N^{i}$ is the number of mosquitoes tested at a gien time point $t$, and let $P_{lo}$ be the allele frequency of a specific allele $a$ at locus $lo$. We define $N_{lo,t}^{a}$ as the number of carrying allele $a$ in the sample. These countes are modeled using a Betabinomial likelihood to account for sampling variability and the overdispersion :
+We consider $M^{a}$ is the number of mosquitoes tested at a given time
+point $t$, and let $P_{l,lo,t}$ be the allele frequency of a specific
+allele at locus $lo$. We define $N_{lo,t}^{a}$ as the number of carrying
+allele in the sample. These countes are modeled using a Betabinomial
+likelihood to account for sampling variability and the overdispersion :
 
 $$  
-N_{lo,t}^{a} \sim Betabinomial (N^{a}, P_{lo}, \rho_{a})
-$$ 
+N_{lo,t}^{a} \sim Betabinomial (M^{a}, P_{lo}, \rho_{a})
+$$
 
 ## II - Process models
-### 1- Computing phenotype from each genotype
-The phenotype (mortality probability) of each genotype is determined by combining contributions from multiple loci, their interactions, and locus-specific resistance effects $\theta_{lo,c} \in [0,1]$ (how much the locus reduces susceptibility to insecticide $c$)
-For each genotype $g$ at locus $lo$, the locus-specific susceptibility contribution $u_{g,lo,c}$ is calculated based on allelic configuration and $ℎ_{lo}$ \in $[0,1]$ is the dominance coefficient, representing the fraction of the resistant allele effect expressed in heterozygotes.
-And $L_{g,lo}$ and $R_{g,lo}$ : are indicators for the allelic states of genotype $g$ at locus $lo$ (SS and RR, respectively).
-$L_{g,lo}$ and $R_{g,lo}$ : are indicators for the allelic states of genotype $g$ at locus $lo$ (SS and RR, respectively).
 
-#### Case 1: Additive effects: each locus contributes independently to the phenotype
-$$ Uadd_{,g,c} = \sum_{lo} U_{g,lo,c}$$
-$$ U_{g,lo,c} = 1 * R_{g,lo} + θ_{lo,c} * (1 − L_{g,l}) + (θ_{lo,c} * h_{lo} + (1 − h_{lo})) * (L_{g,lo} − R_{g,lo})$$
+### 1- Selection pressure and relative fitness
 
-#### Case 2: Multiplicative effects: loci can interact synergistically or antagonistically
-$$Umult_{g,c}= \prod U_{g, lo, c}$$
+Selection towards resistance is generated by insecticide exposure:
+mosquitoes that contact an insecticide die if susceptible and survive
+more often if resistant, so the resistant allele increases in frequency
+in the nextgeneration. The strength of selection at a given place and
+time therefore depends on how much insecticide the vector population is
+actually contacting, from whatever source. Exposure arises from three
+distinct sources, and public health interventions are only one of them:
+\*\*Vector control interventions. **Insecticide-treated nets and indoor
+residual spraying deliver insecticide directly to host-seeking and
+resting mosquitoes. \*\* Agricultural practice** Insecticides applied to
+crops expose larval habitats and adult populations in and around
+farmland. Agricultural formulations frequently belong to the same
+chemical classes as those used in vector control, particularly
+pyrethroids, so agricultural use can select for the same resistance
+mechanisms independently of any public health programme.
 
-#### Case 3: Epistatic effects
-Some loci interact so that the effect of one locus depends on the alleles at another locus
-$$Uepi_{g,c}= \sum_{lo=!lo'} ϵ_{lo,lo′} * U_{g,lo,c} * U_{g,lo′,c} $$
-with $ϵ_{lo,lo′}$ representing the interaction strength between loci. Positive values indicate synergistic epistasis, negative values indicate antagonistic effects.
-
-#### Case 4: Combining effects
-To compute the final genotype-level phenotype, we take a weighted combination:
-$$U_{g,c} ^{*} = ((\alpha * Uadd_{g,c}) + (\beta * Umult_{g,c} + (\gamma * Uepi_{g,c} × θ_{g, c})) / \sum_{g, c} \theta_{g,c}$$
-where $alpha$, $beta$ and $gamma$ represent the proportion of additive, multiplicative, and epistatic influence.
-$U_{g,c} ^{*}$ could represent also here the genotype-level resistance score. This score is converted to a death probability $p_died$ due to insecticide between 0 and 1:
- $$ p_died_{g} = 1 - U_{g,c} ^{*} $$
-that will be interpreted as : higher $U_{g,c} ^{*}$ lead to more resistant so low death probability, and in the opposite, low  $U_{g,c} ^{*}$ lead to more susceptible mosquitoes and high probability of moratlity.
-
-### 2- Population Susceptibility
-
-At each time step $t$, the population-level fraction of susceptible mosquitoes is then computed as the weighted average over genotype frequencies $Z_{g,lo,t}$ (which sum to 1):
-
-$$
-Q_{l,t,c}^{*} = \sum_{g=1}^{n^{3}} U_{g,c} Z_{g,lo,t}
-$$ 
-
-This formulation captures how allelic states at multiple loci, locus-specific resistance effects, and dominance combine to determine both genotype-specific mortality and the population-level susceptibility to each insecticide.
-
- 
-### 3- Computing the probability of having a specific genotype 
-We construct the multilocus genotype frequency $Z_{g,lo,t}$ as the product of per-locus,  genotype probabilities$F_{g,lo,t}$ across the nloci:
-$$Z_{g,t} = \prod_{l=1}^{n} F_{g,lo,t}
-$$
-Let $P_{lo,t}$ denote the frequency of allele resistant at locus lo at time t (so $1-P_{lo,t}$ is the frequency of allele S). For each multilocus genotype g and locus lo, define left and right allele indicator dummy matrices L and R (S =1, R=0). The per-locus probability that matches the genotype of g is 
-$$F_{g,lo,t} = (1 - P_{lo, t})L_{g, lo} + P_{lo, t} (1 - L_{g, lo}) *
-(1 - P_{lo, t})R_{g, lo} + P_{lo, t} (1 - R_{g, lo}) * (1 + L_{g, lo} - R_{g, lo})
-$$
-### 4- Computing the frequency of the genotype at the next time series
-The genotype will be updated by normalization. At each time step we form an unnormalized genotype mass by multiplying the genotype prior (from allele frequencies) with its multilocus fitness. Concretely, with $$G_{g,lo,t} = 3^{B}$$  genotypes over $B$ loci, so $$G_{g,lo,t} = 1 * R_{g, lo} + w_{lo} * (1 - L_{g, lo}) + 
-        (w_{lo} * h_{lo} + 1 - h_{lo}) (L_{g, lo} - R_{g, lo})
-        $$
-The prior for genotype gat time tis $Z_{g,t}$ (product of locus-wise left/right allele probabilities, accounting for the $SR$ duplicate via $1+L-R$); the genotype fitness is $$r_{g,t} = \prod_{lo}^{n} G_{g,lo,t}$$ )
-The unnormalized next-step mass is $$Z_{g,t+1}^{*} = Z_{g,t} * r_{g,t}$$
-We then normalize across genotypes, $$Z_{g,t+1} = Z_{g,t+1}^{*}/ \sum_{g=1}^{n^{3}} Z_{g,t+1}^{*}
-$$ to obtain a valid probability distribution that sums to 1.
-
-### 5- Update the multilocus allele frequency
-For each locus $lo$, we compute the next-step resistant-allele frequency as the posterior-weighted average number of resistant alleles per diploid, divided by 2. Concretely, $Z_{g,t+1}$ is the normalized posterior probability of genotype $g$ at time $t+1$ (so $\sum_{g} Z_{g, t+1}=1$), and $L_{g,lo}$,$R_{g,lo}∈{0,1}$ encode the left and right alleles at that locus with $1 = susceptible (S)$ and $0 = resistant (R)$. Thus, $1 - L_{g,lo}$ is an indicator that the left allele is resistant, and $(1 - R_{g,lo})$ indicates the right allele is resistant. The quantity $(1 - L_{g,lo})+(1 - R_{g,lo})$. Averaging this count across genotypes with weights $Z_{g,t+1}$ gives the expected  number of resistant alleles per individual at that locus; dividing by 2 converts this expected count (out of two alleles) into a frequency:
- $$P_{lo, t+1} = 1/2  \sum_{g=1}^{n^{3}} Z_{g, t+1} (2 - L_{g, lo} - R_{g, lo})$$
- 
-
-### Selection pressure and relative fitness
-We model locus- and insecticide-specific selection pressures as positively-constrained selection coefficients $s_{j,lo,t}$, representing selection towards resistance only; if no resistance driver is present, the selection is zero. These coefficients are expressed as a linear combination of observed covariates $X_{k,lo,t}$, which quantify the intensity of potential resistance drivers at each locus and time (scaled from 0 to 1, e.g., from 0 for 0% LLIN coverage to 1 for 100% coverage), and the positive selection effects 
-$γ_{j,k}$ for insecticide $j$ associated with driver $k$ : 
-
-$$
-s_{j,lo,t} = \sum_{k=1}^{K} X_{k,lo,t} * γ_{j,k}
-$$
-
-and the relative fitness,
-
-$$
-w_{j,lo,t} = 1 + s_{j,lo,t}
-$$
-
-The selection effects $γ_{j,k}$ are constrained to be positive via
-$$ γ_{j,k} =e xp(β_{j,k})$$, and the coefficients $β_{j,k}$ are modeled hierarchically: first sharing information between insecticides within the same class $C(j)$, and then across classes,
+\*\* Domestic and personal use\*\* Household products such as coils,
+aerosols and sprays deliver insecticide inside dwellings outside any
+organised programme. This is not directly measured, and population
+density is used as its proxy. None of these is observed as exposure.
+Each enters the model through an observable covariate: let
+$X_{k,l,t} \in [0,1]$ denote the intensity of exposure source $k$ at
+village $l$ and time $t$, scaled so that 0 is complete absence and 1 is
+maximal (for example, 0 for 0% LLIN use and 1 for 100% LLIN use). The
+selection pressure at locus $lo$ is $$
+s_{lo,l,t} = \sum_{k=1}^{K} X_{k,l,t} * γ_{lo,k}
+$$ where $\gamma_{lo,k} > 0$ is the selection generated at locus $lo$
+per unit of covariate $k$, and therefore is an effect coefficient, not a
+mechanistic rate. The selection effects $γ_{j,k}$ are constrained to be
+positive via $$ γ_{j,k} =e xp(β_{j,k})$$, and the coefficients $β_{j,k}$
+are modeled hierarchically: first sharing information between
+insecticides within the same class $C(j)$, and then across classes,
 
 $$
 β_{j,k} ∼ N(β_{C(j),k}), \sigma_{k2}^{2}
@@ -140,20 +162,186 @@ $$
 β_{j,k} ∼ N(β_{C(j),k}), \sigma_{k1}^{2}
 $$
 
-which allows the model to learn about common drivers of resistance for insecticides with sparse assay data and captures pleiotropic effects of resistance-conferring genotypes across multiple insecticides.
+which allows the model to learn about common drivers of resistance for
+insecticides with sparse assay data and captures pleiotropic effects of
+resistance-conferring genotypes across multiple insecticides. The
+relative fitness,
 
+$$
+w_{j,lo,t} = 1 + s_{j,lo,t}
+$$
 
+### 2- Computing the probability of having a specific genotype
 
+At the first step, multilocus genotype frequencies $Z_{g,lo,t}$ are
+constructed from the initial alleles frequencies. Let $P_{lo,t}$ denote
+the frequency of allele resistant at locus lo at time t (so
+$1 - P_{lo,t}$ is the frequency of allele S), define the left and right
+allele dummy matrices $L$ and $R$ with S = 1 and R = 0. These are fixed
+by construction and not estimated. The per-locus genotype probabilities
+$F_{g,lo,t}$ across the nloci is given by the following:
+$$F_{g,lo,t} = (1 - P_{lo, t})L_{g, lo} + P_{lo, t} (1 - L_{g, lo}) *
+(1 - P_{lo, t})R_{g, lo} + P_{lo, t} (1 - R_{g, lo}) * (1 + L_{g, lo} - R_{g, lo})$$
+Assuming linkage equilibrium, alleles at different loci are inherited
+independently, so the multilocus genotype frequency is the product of
+the per-locus probabilities across the $lo$ loci:
 
+$$Z_{g,t} = \prod_{l=1}^{n} F_{g,lo,t}$$
 
+The multilocus genotype frequency is the product across the $lo$ loci $$
+Z^{*}_{g,l,t} = \prod_{lo=1}^{B} F_{g,lo,l,t},
+$$ \### 3- Computing the frequency of the genotype at the next time
+series. At each time step we form an unnormalized genotype mass by
+multiplying the pre-selection genotype frequency by its multilocus
+fitness. Each locus contributes a fitness multiplier depending on its
+genotypic state: susceptible homozygotes gain nothing, resistant
+homozygotes gain the full relative fitness $w_{lo,l,t}$, and
+heterozygotes gain a fraction $h_{lo}$ of that advantage.
 
+$$G_{g,lo,t} = 3^{n}$$ genotypes over $n$ loci, so
+$$G_{g,lo,t} = 1 * R_{g, lo} + w_{lo} * (1 - L_{g, lo}) + 
+        (w_{lo} * h_{lo} + 1 - h_{lo}) (L_{g, lo} - R_{g, lo})
+        $$
 
+The prior for genotype $g$ at time $t$ is $Z_{g,t}$ (product of
+locus-wise left/right allele probabilities, accounting for the $SR$
+duplicate via $1 + L - R$); the genotype fitness is
+$$r_{g,t} = \prod_{lo}^{n} G_{g,lo,t}$$ The unnormalized next-step mass
+is $$Z_{g,t+1}^{*} = Z_{g,t} * r_{g,t}$$ We then normalize across
+genotypes, $$Z_{g,t+1} = Z_{g,t+1}^{*}/ \sum_{g=1}^{n^{3}} Z_{g,t+1}^{*}
+$$ to obtain a valid probability distribution that sums to 1.
 
+### 4- Computing phenotype from each genotype
 
+Resistance is modelled as a cumulative hazard, by analogy with survival
+analysis. Each locus contributes to a hazard of resistance, and the
+outcome is the probability that the insecticide fails to kill the
+mosquito. As mutations accumulate, each with its own strength, that
+probability increases. Each locus contributes an amount
+$\theta_{lo,c} > 0$ against insecticide class $c$ when homozygous
+resistant, a fraction $h_{lo} \in [0,1]$ of that when heterozygous, and
+nothing when homozygous susceptible. The dominance coefficient $h_{lo}$
+is the fraction of the resistant allele effect expressed in
+heterozygotes: $h_{lo} = 0$ gives fully recessive resistance and
+$h_{lo} = 1$ fully dominant. Writing $\omega_{g,lo}$ for the dominance
+weight, equal to 0 for SS, $h_{lo}$ for SR and 1 for RR, and fixed by
+construction from the genotype enumeration, the per-locus hazard
+contribution is
 
+$$
+\Phi_{g,lo,c} = \omega_{g,lo}\,\theta_{lo,c}
+$$
 
+#### Case 1: Locus contributes independently to the phenotype
 
+Hazards accumulate additively across the $n$ loci,
 
+$$ Uadd_{,g,c} = \sum_{lo=1}^{n} U_{g,lo,c}$$ so resistance at each
+locus adds to the phenotype with no interaction between the phenotypic
+effects of individual mutations. The resistance phenotype, the
+probability that a mosquito of genotype $g$ survives exposure, follows
+from the cumulative hazard by
 
+$$
+S_{g,c} = 1 - \exp\big(Uadd_{,g,c}\big)
+$$ The fully susceptible genotype has $Uadd_{,g,c} = 0$ and therefore
+$S_{g,c} = 0$: it always dies. As hazard accumulates, survival
+approaches but never reaches 1, so $S_{g,c} \in [0,1)$ for any positive
+$\theta$.
 
+#### Case 2: Epistatic effects
 
+Loci may interact, so that the hazard conferred by two mutations present
+in the same individual differs from the sum of their separate
+contributions. We include pairwise interactions only, not three-way or
+higher-order terms. For each pair of loci $lo < lo'$, the interaction
+weight is the product of the two dominance weights,
+$\omega_{g,lo}\,\omega_{g,lo'}$, which takes the value 1 when the
+individual is homozygous resistant at both loci, $h_{lo}$ when
+homozygous resistant at $lo'$ and heterozygous at $lo$, $h_{lo}h_{lo'}$
+when heterozygous at both, and 0 whenever it is homozygous susceptible
+at either. With $n$ loci there are $(n^{2}-n)/2$ such terms. The
+cumulative hazard becomes
+
+$$
+\Phi^{*}_{g,c} = \sum_{lo=1}^{n}\omega_{g,lo}\,\theta_{lo,c}
+               + \sum_{lo<lo'}\omega_{g,lo}\,\omega_{g,lo'}\,\theta^{int}_{lo,lo',c}
+$$
+
+Unlike the main effects, the interaction coefficients
+$\theta^{int}_{lo,lo',c}$ are not constrained to be positive. A positive
+coefficient means the two mutations amplify one another, increasing
+resistance when both are present in the same individual beyond the sum
+of their separate effects. A coefficient of zero means no interaction,
+leaving the additive model unmodified. A negative coefficient means the
+two mutations conflict and their combined effect is less than their sum.
+Allowing negative interactions matters biologically, because two
+mutations may target the same mechanism and a mosquito can only evade
+the insecticide once through a given route.
+
+#### Constraining the interactions
+
+Unconstrained negative coefficients can drive the cumulative hazard
+below zero, which would make the survival probability negative. We
+therefore reparameterise each interaction coefficient relative to the
+main effects of the pair of loci it connects:
+
+$$
+\theta^{int}_{lo,lo',c} = \delta_{lo,lo',c}\,
+  \min\big(\theta_{lo,c},\,\theta_{lo',c}\big)\,\frac{2}{n - 1},
+\qquad
+\delta_{lo,lo',c} \in [-1,\,1]
+$$
+
+so that $\delta$ carries the sign and relative magnitude of the
+interaction and the scaling guarantees non-negative hazard. The bound is
+exactly attained in the worst case: with all $\delta_{lo,lo',c} = -1$
+and all main effects equal, the negative interaction terms cancel the
+positive main effects and the hazard is zero, but cannot go below it. In
+every other configuration the interactions cannot fully offset the main
+effects.
+
+#### Case 4: Combining effects
+
+To compute the final genotype-level phenotype, we take a weighted
+combination:
+$$U_{g,c} ^{*} = ((\alpha * Uadd_{g,c}) + (\beta * Umult_{g,c} + (\gamma * Uepi_{g,c} × θ_{g, c})) / \sum_{g, c} \theta_{g,c}$$
+where $alpha$, $beta$ and $gamma$ represent the proportion of additive,
+multiplicative, and epistatic influence. $U_{g,c} ^{*}$ could represent
+also here the genotype-level resistance score. This score is converted
+to a death probability $p_died$ due to insecticide between 0 and 1:
+$$ p_died_{g} = 1 - U_{g,c} ^{*} $$ that will be interpreted as : higher
+$U_{g,c} ^{*}$ lead to more resistant so low death probability, and in
+the opposite, low $U_{g,c} ^{*}$ lead to more susceptible mosquitoes and
+high probability of moratlity.
+
+### 2- Population Susceptibility
+
+At each time step $t$, the population-level fraction of susceptible
+mosquitoes is then computed as the weighted average over genotype
+frequencies $Z_{g,lo,t}$ (which sum to 1):
+
+$$
+Q_{l,t,c}^{*} = \sum_{g=1}^{n^{3}} U_{g,c} Z_{g,lo,t}
+$$
+
+This formulation captures how allelic states at multiple loci,
+locus-specific resistance effects, and dominance combine to determine
+both genotype-specific mortality and the population-level susceptibility
+to each insecticide.
+
+### 5- Update the multilocus allele frequency
+
+For each locus $lo$, we compute the next-step resistant-allele frequency
+as the posterior-weighted average number of resistant alleles per
+diploid, divided by 2. Concretely, $Z_{g,t+1}$ is the normalized
+posterior probability of genotype $g$ at time $t+1$ (so
+$\sum_{g} Z_{g, t+1}=1$), and $L_{g,lo}$,$R_{g,lo}∈{0,1}$ encode the
+left and right alleles at that locus with $1 = susceptible (S)$ and
+$0 = resistant (R)$. Thus, $1 - L_{g,lo}$ is an indicator that the left
+allele is resistant, and $(1 - R_{g,lo})$ indicates the right allele is
+resistant. The quantity $(1 - L_{g,lo})+(1 - R_{g,lo})$. Averaging this
+count across genotypes with weights $Z_{g,t+1}$ gives the expected
+number of resistant alleles per individual at that locus; dividing by 2
+converts this expected count (out of two alleles) into a frequency:
+$$P_{lo, t+1} = 1/2  \sum_{g=1}^{n^{3}} Z_{g, t+1} (2 - L_{g, lo} - R_{g, lo})$$
