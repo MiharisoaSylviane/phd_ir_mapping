@@ -37,7 +37,7 @@ density 2000-2030 (Worldpop/MAP, adjusted to UN forecasts 2021-2030)
 ## **Parameters**
 
 | Symbol | Meaning |
-|----|----|
+|------------------------------------|------------------------------------|
 | $theta_{lo}$ | residual susceptibility of the resistant genotype RR = probability that a homozygous R mosquito still dies on exposure |
 | $h_lo$ | dominance |
 | $beta_{k.lo}$ | how strongly each thing in the environment, like bed net coverage, pushes resistance to spread |
@@ -51,7 +51,7 @@ density 2000-2030 (Worldpop/MAP, adjusted to UN forecasts 2021-2030)
 ## **Estimated Values**
 
 | Symbol\| Meaning \| |   |
-|----|----|
+|------------------------------------|------------------------------------|
 | $U_{g,lo}$ \| per-locus susceptibility contribution \| |  |
 | $U^{*}_{g}$ \| genotype-level probability of death (phenotype of each genotype) \| |  |
 | $s_{lo,l}$ \| selection pressure \| |  |
@@ -145,12 +145,10 @@ distinct sources, and public health interventions are only one of them:
     organised programme. This is not directly measured, and population
     density is used as its proxy. None of these is observed as exposure.
     Each enters the model through an observable covariate: let
-    $X_{k,l,t} \in [0,1]$ denote the intensity of exposure source $k$ at
+    $$X_{k,l,t} \in [0,1]$$ denote the intensity of exposure source $k$ at
     village $l$ and time $t$, scaled so that 0 is complete absence and 1
     is maximal (for example, 0 for 0% LLIN use and 1 for 100% LLIN use).
-    The selection pressure at locus $lo$ is $$
-    s_{lo,l,t} = \sum_{k=1}^{K} X_{k,l,t} * γ_{lo,k}
-    $$ where $\gamma_{lo,k} > 0$ is the selection generated at locus
+    The selection pressure at locus $lo$ is $$s_{lo,l,t} = \sum_{k=1}^{K} X_{k,l,t} * γ_{lo,k}$$ where $\gamma_{lo,k} > 0$ is the selection generated at locus
     $lo$ per unit of covariate $k$, and therefore is an effect
     coefficient, not a mechanistic rate. The selection effects $γ_{j,k}$
     are constrained to be positive via $$ γ_{j,k} =e xp(β_{j,k})$$, and
