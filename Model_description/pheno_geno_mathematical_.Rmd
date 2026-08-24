@@ -145,16 +145,18 @@ distinct sources, and public health interventions are only one of them:
     organised programme. This is not directly measured, and population
     density is used as its proxy. None of these is observed as exposure.
     Each enters the model through an observable covariate: let
-    $$X_{k,l,t} \in [0,1]$$ denote the intensity of exposure source $k$ at
-    village $l$ and time $t$, scaled so that 0 is complete absence and 1
-    is maximal (for example, 0 for 0% LLIN use and 1 for 100% LLIN use).
-    The selection pressure at locus $lo$ is $$s_{lo,l,t} = \sum_{k=1}^{K} X_{k,l,t} * γ_{lo,k}$$ where $\gamma_{lo,k} > 0$ is the selection generated at locus
-    $lo$ per unit of covariate $k$, and therefore is an effect
-    coefficient, not a mechanistic rate. The selection effects $γ_{j,k}$
-    are constrained to be positive via $$ γ_{j,k} =e xp(β_{j,k})$$, and
-    the coefficients $β_{j,k}$ are modeled hierarchically: first sharing
-    information between insecticides within the same class $C(j)$, and
-    then across classes,
+    $$X_{k,l,t} \in [0,1]$$ denote the intensity of exposure source $k$
+    at village $l$ and time $t$, scaled so that 0 is complete absence
+    and 1 is maximal (for example, 0 for 0% LLIN use and 1 for 100% LLIN
+    use). The selection pressure at locus $lo$ is
+    $$s_{lo,l,t} = \sum_{k=1}^{K} X_{k,l,t} * γ_{lo,k}$$ where
+    $\gamma_{lo,k} > 0$ is the selection generated at locus $lo$ per
+    unit of covariate $k$, and therefore is an effect coefficient, not a
+    mechanistic rate. The selection effects $γ_{j,k}$ are constrained to
+    be positive via $$γ_{j,k} =e xp(β_{j,k})$$, and the coefficients
+    $β_{j,k}$ are modeled hierarchically: first sharing information
+    between insecticides within the same class $C(j)$, and then across
+    classes,
 
 $$
 β_{j,k} ∼ N(β_{C(j),k}), \sigma_{k2}^{2}
@@ -182,17 +184,21 @@ $1 - P_{lo,t}$ is the frequency of allele S), define the left and right
 allele dummy matrices $L$ and $R$ with S = 1 and R = 0. These are fixed
 by construction and not estimated. The per-locus genotype probabilities
 $F_{g,lo,t}$ across the nloci is given by the following:
+
 $$F_{g,lo,t} = (1 - P_{lo, t})L_{g, lo} + P_{lo, t} (1 - L_{g, lo}) *
 (1 - P_{lo, t})R_{g, lo} + P_{lo, t} (1 - R_{g, lo}) * (1 + L_{g, lo} - R_{g, lo})$$
+
 Assuming linkage equilibrium, alleles at different loci are inherited
 independently, so the multilocus genotype frequency is the product of
 the per-locus probabilities across the $lo$ loci:
 
 $$Z_{g,t} = \prod_{l=1}^{n} F_{g,lo,t}$$
 
-The multilocus genotype frequency is the product across the $lo$ loci $$
-Z^{*}_{g,l,t} = \prod_{lo=1}^{B} F_{g,lo,l,t},
-$$ \### 3- Computing the frequency of the genotype at the next time
+The multilocus genotype frequency is the product across the $lo$ loci 
+$$Z^{*}_{g,l,t} = \prod_{lo=1}^{B} F_{g,lo,l,t},$$
+
+### 3- Computing the frequency of the genotype at the next time
+
 series. At each time step we form an unnormalized genotype mass by
 multiplying the pre-selection genotype frequency by its multilocus
 fitness. Each locus contributes a fitness multiplier depending on its
@@ -201,17 +207,25 @@ homozygotes gain the full relative fitness $w_{lo,l,t}$, and
 heterozygotes gain a fraction $h_{lo}$ of that advantage.
 
 $$G_{g,lo,t} = 3^{n}$$ genotypes over $n$ loci, so
+
 $$G_{g,lo,t} = 1 * R_{g, lo} + w_{lo} * (1 - L_{g, lo}) + 
-        (w_{lo} * h_{lo} + 1 - h_{lo}) (L_{g, lo} - R_{g, lo})
-        $$
+        (w_{lo} * h_{lo} + 1 - h_{lo}) (L_{g, lo} - R_{g, lo})$$
 
 The prior for genotype $g$ at time $t$ is $Z_{g,t}$ (product of
 locus-wise left/right allele probabilities, accounting for the $SR$
 duplicate via $1 + L - R$); the genotype fitness is
-$$r_{g,t} = \prod_{lo}^{n} G_{g,lo,t}$$ The unnormalized next-step mass
-is $$Z_{g,t+1}^{*} = Z_{g,t} * r_{g,t}$$ We then normalize across
-genotypes, $$Z_{g,t+1} = Z_{g,t+1}^{*}/ \sum_{g=1}^{n^{3}} Z_{g,t+1}^{*}
-$$ to obtain a valid probability distribution that sums to 1.
+
+$$r_{g,t} = \prod_{lo}^{n} G_{g,lo,t}$$
+
+The unnormalized next-step mass is 
+
+$$Z_{g,t+1}^{*} = Z_{g,t} * r_{g,t}$$
+We then normalize across genotypes,
+
+$$Z_{g,t+1} = Z_{g,t+1}^{*}/ \sum_{g=1}^{n^{3}} Z_{g,t+1}^{*}$$ 
+
+to
+obtain a valid probability distribution that sums to 1.
 
 ### 4- Computing phenotype from each genotype
 
@@ -238,7 +252,8 @@ $$
 
 Hazards accumulate additively across the $n$ loci,
 
-$$ Uadd_{,g,c} = \sum_{lo=1}^{n} U_{g,lo,c}$$ so resistance at each
+$$ Uadd_{,g,c} = \sum_{lo=1}^{n} U_{g,lo,c}$$
+so resistance at each
 locus adds to the phenotype with no interaction between the phenotypic
 effects of individual mutations. The resistance phenotype, the
 probability that a mosquito of genotype $g$ survives exposure, follows
@@ -246,7 +261,9 @@ from the cumulative hazard by
 
 $$
 S_{g,c} = 1 - \exp\big(Uadd_{,g,c}\big)
-$$ The fully susceptible genotype has $Uadd_{,g,c} = 0$ and therefore
+$$
+
+The fully susceptible genotype has $Uadd_{,g,c} = 0$ and therefore
 $S_{g,c} = 0$: it always dies. As hazard accumulates, survival
 approaches but never reaches 1, so $S_{g,c} \in [0,1)$ for any positive
 $\theta$.
@@ -307,7 +324,10 @@ effects.
 
 To compute the final genotype-level phenotype, we take a weighted
 combination:
+
 $$U_{g,c} ^{*} = ((\alpha * Uadd_{g,c}) + (\beta * Umult_{g,c} + (\gamma * Uepi_{g,c} × θ_{g, c})) / \sum_{g, c} \theta_{g,c}$$
+
+
 where $alpha$, $beta$ and $gamma$ represent the proportion of additive,
 multiplicative, and epistatic influence. $U_{g,c} ^{*}$ could represent
 also here the genotype-level resistance score. This score is converted
@@ -346,4 +366,5 @@ resistant. The quantity $(1 - L_{g,lo})+(1 - R_{g,lo})$. Averaging this
 count across genotypes with weights $Z_{g,t+1}$ gives the expected
 number of resistant alleles per individual at that locus; dividing by 2
 converts this expected count (out of two alleles) into a frequency:
+
 $$P_{lo, t+1} = 1/2  \sum_{g=1}^{n^{3}} Z_{g, t+1} (2 - L_{g, lo} - R_{g, lo})$$
