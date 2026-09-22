@@ -475,7 +475,7 @@ alpha0_z <- (1 - rho_z^2) / rho_z^2
 
 # creating a vector where we could store a list of dimension village X time
 # it was equivalent to the step where we are creating vector or matrix for data storage
-<<<<<<< HEAD
+
 # alpha_rows  <- vector("list", n_unique_cells * Tmax)
 # # so this will be null or empty then we will fill that with the 
 # Z_rows      <- vector("list", n_unique_cells * Tmax) # list of genotypes frequency
@@ -486,7 +486,7 @@ alpha0_z <- (1 - rho_z^2) / rho_z^2
 # time_vec    <- integer(n_unique_cells * Tmax)
 # n_unique_cells <- length(unique_cells)
 
-=======
+
 alpha_rows  <- vector("list", n_villages * Tmax)
 # so this will be null or empty then we will fill that with the 
 Z_rows      <- vector("list", n_villages * Tmax) # list of genotypes frequency
@@ -501,7 +501,7 @@ row_id <- 1
 # length(allele_freq_rows)
 # length(alpha_rows)
 # length(pdied_add_rows)
->>>>>>> 487c0381daa67570f5d47ee6a97afe5b335840df
+
 # pdied_mult_rows <- vector("list", n_villages * Tmax)  
 ### Betamat represent the effect of covariates on the selection
 betamat   <- normal(-2, 0.7, dim = c(K, n_loci))
@@ -905,7 +905,7 @@ w_matrix <- do.call(greta::abind, c(w_rows, list(along = 1)))
 
 class(s_matrix)
 dim(s_matrix)
->>>>>>> 487c0381daa67570f5d47ee6a97afe5b335840df
+
 
 
 
