@@ -38,8 +38,6 @@ locus_names <- c("Marker_1", "Marker_2")
 colnames(L) <- locus_names
 colnames(R) <- locus_names
 
-<<<<<<< HEAD
-=======
 
 # number of generations
 Tmax <- 2
@@ -125,7 +123,6 @@ range(X_villages); anyNA(X_villages)
 #   coverage  = c(0.10, 0.35, 0.50, 0.65, 0.80, 0.95)
 # )
 
->>>>>>> 487c0381daa67570f5d47ee6a97afe5b335840df
 # Locus transformation to match the Greta syntax
 # version greta as the matrix creation won't be identified by Greta
 # because Greta can't keep the matrix with qualitative data part of the plain R we have then 
@@ -2262,16 +2259,9 @@ write.csv(recovery_summary, "dataoutput/recovery_summary.csv", row.names = FALSE
 #                                    exclude = "px_kigali_13,")
 
 
-
-<<<<<<< HEAD
-class(x_cell_years)
-class(fitness_cell_years)
-class(effect_type)
-=======
-
 # check convergence
 rhats <- coda::gelman.diag(draws,
                            autoburnin = FALSE,
                            multivariate = FALSE)
 summary(rhats$psrf)
->>>>>>> 487c0381daa67570f5d47ee6a97afe5b335840df
+
