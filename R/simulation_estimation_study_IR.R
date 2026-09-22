@@ -38,6 +38,94 @@ locus_names <- c("Marker_1", "Marker_2")
 colnames(L) <- locus_names
 colnames(R) <- locus_names
 
+<<<<<<< HEAD
+=======
+
+# number of generations
+Tmax <- 2
+
+# number of mosquitoes tested
+M_z <- 10
+
+# n_villages <- nrow(villages)
+# n_villages   # should now be much smaller than the full-country count
+
+# X_villages <- cbind(
+#   intercept = 1,
+#   itn       = villages$itn_use
+# )
+# K <- ncol(X_villages)
+
+## Running the code by batch
+# b <- 1   # test with the first batch
+# 
+# villages <- coords[batch_idx[[b]], ] %>%
+#   mutate(village = paste0("px_", row_number()))
+# after running the fake data with Madagascar and now Rwanda,
+# NOTE FOR MYSELF : 
+# Nick advice was to divide the areas to batch, however it was now 2 days and I am
+# still in batch 2, so I made a decision here to use Kigali only to get the fake data
+# and estimate if the model is working or not
+
+# The following code allow us to run the model by using the bacth principles
+# we will not use it this time as it is not easy as I expected too (snail and stressful)
+# divide the areas by batch
+
+# # reading the data first
+# rw_net_use <- read.csv("data_raw/rwanda_nets_use_2010.csv")
+# # dividing the data by batch
+# BATCH_SIZE <- 50  
+# # renaming the column to match the raster transformation later
+# coords <- rw_net_use %>%
+#   rename(longitude = x, latitude = y, itn_use = nets_2010) %>% 
+#   filter(!is.na(itn_use)) %>%
+#   distinct(longitude, latitude, .keep_all = TRUE)
+# # checking the number of pixels to run, here it was
+# n_pixels <- nrow(coords)
+# batch_idx <- split(seq_len(n_pixels), ceiling(seq_len(n_pixels) / BATCH_SIZE))
+# 
+# cat(sprintf("  %d pixels -> %d batches de ~%d\n", n_pixels, length(batch_idx), BATCH_SIZE))
+villages <-  read.csv("data_raw/kigali_covariates.csv")
+# villages <- kigali_net_use %>%
+#   rename(longitude = x, latitude = y, itn_use = nets_2010) %>%
+#   filter(!is.na(itn_use)) %>%
+#   distinct(longitude, latitude, .keep_all = TRUE) %>%
+#   mutate(village = paste0("px_kigali_", row_number()))
+X_villages <- as.matrix(villages[, c("itn")])
+n_villages <- nrow(villages)
+n_villages   #
+X_villages <- cbind(itn       = villages$itn
+)
+
+K <- ncol(X_villages)
+
+dim(X_villages)          # should be n_villages x 1
+nrow(X_villages) == n_villages
+range(X_villages); anyNA(X_villages)
+# now run your existing simulation.R pipeline exactly as before —
+# priors, source("R/function_geno_pheno.R"), the village loop, model(), mcmc() —
+# using this tile's villages/X_villages/n_villages
+
+
+# X_villages <- cbind(
+#   intercept = 1,
+#   coverage  = c(0.10, 0.35)
+# )
+# X_villages <- cbind(
+#   intercept = 1,
+#   itn       = villages$itn_use
+#   # irs       = villages$irs_cov
+# )
+# n_villages <- dim(X_villages)[1]
+# K <- ncol(X_villages)
+# colnames(X_villages)
+# dim(X_villages)
+# X_villages <- cbind(
+#   intercept = 1,
+#   coverage  = c(0.10, 0.35, 0.50, 0.65, 0.80, 0.95)
+# )
+
+>>>>>>> 487c0381daa67570f5d47ee6a97afe5b335840df
 # Locus transformation to match the Greta syntax
 # version greta as the matrix creation won't be identified by Greta
 # because Greta can't keep the matrix with qualitative data part of the plain R we have then 
@@ -390,6 +478,7 @@ alpha0_z <- (1 - rho_z^2) / rho_z^2
 
 # creating a vector where we could store a list of dimension village X time
 # it was equivalent to the step where we are creating vector or matrix for data storage
+<<<<<<< HEAD
 # alpha_rows  <- vector("list", n_unique_cells * Tmax)
 # # so this will be null or empty then we will fill that with the 
 # Z_rows      <- vector("list", n_unique_cells * Tmax) # list of genotypes frequency
@@ -400,6 +489,22 @@ alpha0_z <- (1 - rho_z^2) / rho_z^2
 # time_vec    <- integer(n_unique_cells * Tmax)
 # n_unique_cells <- length(unique_cells)
 
+=======
+alpha_rows  <- vector("list", n_villages * Tmax)
+# so this will be null or empty then we will fill that with the 
+Z_rows      <- vector("list", n_villages * Tmax) # list of genotypes frequency
+allele_freq_rows <- vector("list", n_villages * Tmax) # list of allele frequency by village and time
+s_rows <- vector("list", n_villages) # list of the selection pressure by pixel
+w_rows <- vector("list", n_villages) # list of the relative fitness by pixel
+village_vec <- integer(n_villages * Tmax)
+time_vec    <- integer(n_villages * Tmax)
+# pdied_add_rows   <- vector("list", n_villages * Tmax)
+row_id <- 1
+# length(Z_rows)
+# length(allele_freq_rows)
+# length(alpha_rows)
+# length(pdied_add_rows)
+>>>>>>> 487c0381daa67570f5d47ee6a97afe5b335840df
 # pdied_mult_rows <- vector("list", n_villages * Tmax)  
 ### Betamat represent the effect of covariates on the selection
 betamat   <- normal(-2, 0.7, dim = c(K, n_loci))
@@ -575,6 +680,7 @@ allele_freq_matrix <- do.call(rbind, c(
   })
 ))[as.vector(t(matrix(seq_len(n_cells * Tmax), nrow = n_cells, ncol = Tmax))), ]
 
+<<<<<<< HEAD
 
 # likelihood 
 Z_matrix     <- probability_genotype_rows_greta(allele_freq_matrix)
@@ -755,6 +861,54 @@ dim(Gw)
 # 
 # class(s_matrix)
 # dim(s_matrix)
+=======
+  # 
+  Z_list_i <- simulate_genotype_timecourse_greta(
+    p = p_i, w = w_i, h = h, Tmax = Tmax,
+    SS_mask = SS_mask_g, RR_mask = RR_mask_g, SR_mask = SR_mask_g,
+    L = L_g, R = R_g
+  )
+  
+  for (t in seq_len(Tmax)) {
+    # genotype frequency (1 X G)
+    Z_rows[[row_id]]     <- t(Z_list_i[[t]])
+    alpha_rows[[row_id]] <- Z_rows[[row_id]] * alpha0_z + 1e-8   
+    village_vec[row_id]  <- i
+    time_vec[row_id]    <- t
+    theta_it            <- t(theta[row_id, ])
+    Ugc <- compute_Ugc(theta_it, h, SS_mask_g, RR_mask_g, SR_mask_g)
+  
+    # allele
+    allele_freq_rows[[row_id]] <- t(allele_frequency_from_genotype_greta(Z_list_i[[t]], L_g, R_g))
+    
+    U_add_i  <- compute_Ustar_additive(Ugc_i, theta)
+    U_add_i <- compute_Ustar_additive(Ugc, theta_it)
+    # U_mult_i <- compute_Ustar_multiplicative(Ugc, theta_it)
+    
+    pdied_add_rows[[i]]  <- t(compute_p_died(U_add_i))
+    pdied_add_rows[[row_id]] <- t(compute_p_died_additive(U_add_i))
+    # pdied_mult_rows[[row_id]] <- t(compute_p_died(U_mult_i))
+    row_id              <- row_id + 1
+    
+  }
+}
+
+# (n_villages*Tmax) x G, true frequency
+Z_matrix     <- do.call(greta::abind, c(Z_rows, list(along = 1)))  
+# (n_villages*Tmax) x G
+alpha_matrix <- do.call(greta::abind, c(alpha_rows, list(along = 1)))  
+size_vector  <- rep(M_z, length(alpha_rows))  
+# alleles
+allele_freq_matrix   <- do.call(greta::abind, c(allele_freq_rows, list(along = 1)))
+# n_villages x G
+# p_died_add_matrix  <- do.call(greta::abind, c(pdied_add_rows,  list(along = 1)))
+# p_died_mult_matrix <- do.call(greta::abind, c(pdied_mult_rows, list(along = 1)))
+s_matrix <- do.call(greta::abind, c(s_rows, list(along = 1)))   # n_villages x n_loci
+w_matrix <- do.call(greta::abind, c(w_rows, list(along = 1)))
+
+class(s_matrix)
+dim(s_matrix)
+>>>>>>> 487c0381daa67570f5d47ee6a97afe5b335840df
 
 
 
@@ -771,6 +925,7 @@ dim(Gw)
 ### 4- Fake data generating with the prior and likelihood
 #########################################################
 #sim_result <- calculate(alpha_matrix, theta, Z_matrix, betamat, h, rho_z, p_village, p_died_mult_matrix, nsim = 1)
+<<<<<<< HEAD
 # sim_result <- calculate(alpha_matrix, theta, Z_matrix, betamat, h, rho_z, p_died_add_matrix, p_village, phi_add, allele_freq_matrix, phi_allele, s_matrix, w_matrix, nsim = 1)
 # #sim_result <- calculate(alpha_matrix, Z_matrix, betamat, h, rho_z, p_village, allele_freq_matrix, s_matrix, w_matrix, nsim = 1)
 # # str(sim_result)
@@ -1236,6 +1391,473 @@ dim(Gw)
 # 
 # 
 # rhat <- coda::gelman.diag(draws, autoburnin = FALSE, multivariate = FALSE)
+=======
+sim_result <- calculate(alpha_matrix, theta, Z_matrix, betamat, h, rho_z, p_died_add_matrix, p_village, phi_add, allele_freq_matrix, phi_allele, s_matrix, w_matrix, nsim = 1)
+#sim_result <- calculate(alpha_matrix, Z_matrix, betamat, h, rho_z, p_village, allele_freq_matrix, s_matrix, w_matrix, nsim = 1)
+# str(sim_result)
+# range(true_p_village)
+# range(true_allele_freq)
+# range(true_Z_matrix)
+# (n_villages*Tmax) x G
+
+# range(rowSums(true_Z_matrix))
+
+alpha_numeric  <- sim_result$alpha_matrix[1, , ] 
+# (n_villages*Tmax) x G
+true_Z_matrix  <- sim_result$Z_matrix[1, , ]       
+true_betamat   <- sim_result$betamat[1, , ]
+true_h         <- sim_result$h[1, , ]
+true_rho_z     <- as.numeric(sim_result$rho_z)[1]
+true_p_village <- sim_result$p_village[1, , ]
+
+true_theta          <- sim_result$theta[1, , ]
+true_p_died_add      <- sim_result$p_died_add_matrix[1, , ]
+# true_p_died_mult      <- sim_result$p_died_mult_matrix[1, , ]
+true_allele_freq <- sim_result$allele_freq_matrix[1, , ]
+true_phi_allele  <- as.numeric(sim_result$phi_allele)[1]
+true_w <- sim_result$w_matrix[1, , ]
+true_s <- sim_result$s_matrix[1, , ]
+
+# allele sanity check
+if (any(true_allele_freq < 0 | true_allele_freq > 1)) {
+  stop("true_allele_freq out of [0,1]. range = ", paste(round(range(true_allele_freq), 6), collapse = " to "))
+}
+# Gneotype count
+# Likelihood, a here is one row of the alpha_numeric at a time
+fake_counts_matrix <- t(apply(alpha_numeric, 1, function(a) {
+  z_disp <- as.numeric(MCMCpack::rdirichlet(1, a))
+  as.vector(rmultinom(1, M_z, z_disp / sum(z_disp)))
+  
+}))
+
+n_tested_vec <- rowSums(fake_counts_matrix) 
+
+# Phenotype count
+
+# fake_dead_add  <- matrix(rbinom(length(true_p_died_add),  M_z, true_p_died_add),
+#                          nrow = n_villages * Tmax)
+
+# fake_dead_mult <- matrix(rbinom(length(true_p_died_mult), M_z, true_p_died_mult),
+#                          nrow = n_villages * Tmax)
+
+
+# tibble of the fake data we tried before: row =  village x génotype x timepoint
+## the option (scipen =999) allow us to avoid the e-10 that would make the dataframe
+# strange
+options(scipen = 999)
+# mcmc_data_all_sim <- map_dfr(seq_len(nrow(fake_counts_matrix)), function(r) {
+#   genotype_lookup %>%
+#     mutate(
+#       n_observed = fake_counts_matrix[r, ],
+#       z_true     = true_Z_matrix[r, ],
+#       n_tested   = n_tested_vec[r],
+#       timepoint  = time_vec[r],
+#       village    = villages$village[village_vec[r]],
+#       latitude   = villages$latitude[village_vec[r]],
+#       longitude  = villages$longitude[village_vec[r]],
+#       # p_died_add_true     = true_p_died_add[r, ],     
+#       # p_died_mult_true    = true_p_died_mult[r, ],     
+#       # dead_add_observed   = fake_dead_add[r, ],        
+#       # dead_mult_observed  = fake_dead_mult[r, ] 
+#     )
+# })
+# mcmc_data_all_sim <- mcmc_data_all_sim %>%
+#   mutate(across(where(is.numeric), ~ format(., scientific = FALSE)))
+locus_cols <- setdiff(names(genotype_lookup), "genotype_id")
+mcmc_data_all_sim <- map_dfr(seq_len(nrow(fake_counts_matrix)), function(r) {
+  genotype_lookup %>%
+    mutate(
+      n_observed = fake_counts_matrix[r, ],
+      z_true     = true_Z_matrix[r, ],
+      n_tested   = n_tested_vec[r],
+      timepoint  = time_vec[r],
+      village    = villages$village[village_vec[r]],
+      latitude   = villages$latitude[village_vec[r]],
+      longitude  = villages$longitude[village_vec[r]]
+    )
+}) %>%
+  mutate(genotype   = do.call(paste0, across(all_of(locus_cols))),
+    # genotype   = paste0(L1014F, L1014S),
+         village_id = match(village, villages$village))
+
+
+summary(mcmc_data_all_sim)
+true_s
+
+true_w[1:5, ]
+true_s[1:5, ]
+write.csv(mcmc_data_all_sim, "dataoutput/data_to_use.csv", row.names = FALSE)
+# writeRaster(mcmc_data_all_sim, "dataoutput/data_to_use.tif")
+
+# # 
+# mcmc_data_all_sim <- mcmc_data_all_sim %>%
+#   mutate(village_id = match(village, villages$village))
+
+mcmc_data_all_sim <- mcmc_data_all_sim %>%
+  mutate(genotype   = do.call(paste0, across(all_of(locus_cols))),
+    # genotype = paste0(L1014F, L1014S),
+         village_id = match(village, villages$village))
+
+
+# allele-frequency table, long format: one row per pixel x timepoint x locus
+allele_freq_long <- as.data.frame(true_allele_freq) %>%
+  setNames(locus_names) %>%
+  mutate(
+    village   = villages$village[village_vec],
+    timepoint = time_vec,
+    village_id = village_vec
+  ) %>%
+  pivot_longer(cols = all_of(locus_names), names_to = "locus", values_to = "allele_frequency")
+
+# we transform the data to matrix for the model to be able to read it
+
+# fake allele counts — 2*M_z "trials" per row/locus, since alleles are diploid
+eps <- 1e-6
+# here we are multiplying the value from true_allele_freq to avoid it will fall to 0
+true_allele_freq_safe <- eps + (1 - 2 * eps) * true_allele_freq
+# generate a fake allele fequency, here because one loci contains 2 allele
+# that's why we say that the size will be 2* Mz
+fake_allele_count <- matrix(
+  rbinom(length(true_allele_freq_safe), size = 2 * M_z, prob = true_allele_freq_safe),
+  nrow = n_villages * Tmax
+)
+# matching the column names to match the loci
+colnames(fake_allele_count) <- locus_names
+colnames(fake_allele_count)
+
+# modify the name to village_id and timepoint
+allele_count_long <- as.data.frame(fake_allele_count) %>%
+  mutate(village_id = village_vec, timepoint = time_vec) %>%
+  pivot_longer(cols = all_of(locus_names), names_to = "locus", values_to = "allele_count_observed")
+allele_freq_long <- allele_freq_long %>%
+  left_join(allele_count_long, by = c("village_id", "timepoint", "locus"))
+write.csv(allele_freq_long, "dataoutput/allele_frequency_data.csv", row.names = FALSE)
+
+# fake slection pressure and relative fitness
+##################################################################
+### Extract true s and w through calculate()
+##################################################################
+# sim_result <- calculate(
+#   alpha_matrix, theta, Z_matrix, betamat, h, rho_z, p_village,
+#   p_died_add_matrix, phi_add, allele_freq_matrix, phi_allele,
+#   s_matrix, w_matrix,
+#   nsim = 1
+# )
+
+true_s <- sim_result$s_matrix[1, , ]   # n_villages x n_loci
+true_w <- sim_result$w_matrix[1, , ]   # n_villages x n_loci
+true_betamat     <- sim_result$betamat[1, , ]
+# because we will do the same thing for the fake phenotype drawn from the additive
+# effect and multiplicative effect so we are using a function
+pivot_genotype_matrix <- function(df, value_col) {
+  df %>%
+    mutate(across(any_of(c("village_id", "timepoint", "genotype_id")), as.numeric)) %>%
+    arrange(village_id, timepoint, genotype_id) %>%
+    pivot_wider(
+      id_cols     = c(village_id, timepoint),
+      names_from  = genotype_id,
+      names_sort  = TRUE,
+      values_from = {{ value_col }}
+    ) %>%
+    arrange(village_id, timepoint) %>%
+    dplyr::select(-village_id, -timepoint) %>%
+    as.matrix() %>%
+    unname()
+}
+
+fake_counts_matrix_pivoted <- pivot_genotype_matrix(mcmc_data_all_sim, n_observed)
+#dead_add_matrix_pivoted    <- pivot_genotype_matrix(mcmc_data_all_sim, dead_add_observed)
+# selection pressure
+##################################################################
+selection_pressure_tbl <- as.data.frame(true_w) %>%
+  setNames(locus_names) %>%
+  mutate(village = villages$village, latitude = villages$latitude, longitude = villages$longitude) %>%
+  tidyr::pivot_longer(cols = all_of(locus_names), names_to = "locus", values_to = "w") %>%
+  left_join(
+    as.data.frame(true_s) %>%
+      setNames(locus_names) %>%
+      mutate(village = villages$village) %>%
+      tidyr::pivot_longer(cols = all_of(locus_names), names_to = "locus", values_to = "s"),
+    by = c("village", "locus")
+  )
+
+selection_pressure_tbl
+write.csv(selection_pressure_tbl, "dataoutput/selection_pressure.csv", row.names = FALSE)
+
+# fake_counts_matrix_pivoted <- mcmc_data_all_sim %>%
+#   arrange(village, timepoint, genotype_id) %>%
+#   pivot_wider(
+#     id_cols     = c(village, timepoint),
+#     names_from  = genotype_id,
+#     values_from = n_observed
+#   ) %>%
+#   arrange(village, timepoint) %>%
+#   dplyr::select(-village, -timepoint) %>%
+#   as.matrix()
+fake_counts_matrix_pivoted  <- pivot_genotype_matrix(mcmc_data_all_sim, n_observed)
+dead_add_matrix_pivoted     <- pivot_genotype_matrix(mcmc_data_all_sim, dead_add_observed)
+# view(fake_counts_matrix_pivoted)
+# dead_add_matrix_pivoted <- mcmc_data_all_sim %>%
+#   mutate(across(c(village_id, timepoint, genotype_id), as.numeric)) %>%
+#   arrange(village_id, timepoint, genotype_id) %>%
+#   pivot_wider(
+#     id_cols     = c(village_id, timepoint),
+#     names_from  = genotype_id,
+#     names_sort  = TRUE,
+#     values_from = dead_add_observed
+#   ) %>%
+#   arrange(village_id, timepoint) %>%
+#   dplyr::select(-village_id, -timepoint) %>%
+#   as.matrix()
+
+allele_count_matrix_pivoted <- allele_count_long %>%
+  arrange(village_id, timepoint, locus) %>%
+  pivot_wider(id_cols = c(village_id, timepoint), names_from = locus, values_from = allele_count_observed) %>%
+  arrange(village_id, timepoint) %>%
+  dplyr::select(-village_id, -timepoint) %>% 
+  as.matrix()
+
+stopifnot(all.equal(unname(allele_count_matrix_pivoted), unname(fake_allele_count)))
+mcmc_data_all_sim %>% distinct(village, village_id) %>% arrange(village_id) %>% head(5)
+## slection pressure
+relative_fitness_long <- as.data.frame(true_w) %>%
+  setNames(locus_names) %>%
+  mutate(village = villages$village, latitude = villages$latitude, longitude = villages$longitude) %>%
+  pivot_longer(cols = all_of(locus_names), names_to = "locus", values_to = "w") %>%
+  left_join(
+    as.data.frame(true_s) %>%
+      setNames(locus_names) %>%
+      mutate(village = villages$village) %>%
+      pivot_longer(cols = all_of(locus_names), names_to = "locus", values_to = "s"),
+    by = c("village", "locus")
+  )
+summary(relative_fitness_long$w)
+head(relative_fitness_long )
+write.csv(relative_fitness_long, "dataoutput/relative_fitness_long.csv", row.names = FALSE)
+## multiplicative
+# dead_mult_matrix_pivoted <- mcmc_data_all_sim %>%
+#   arrange(village_id, timepoint, genotype_id) %>%
+#   pivot_wider(
+#     id_cols     = c(village_id, timepoint),
+#     names_from  = genotype_id,
+#     values_from = dead_mult_observed
+#   ) %>%
+#   arrange(village_id, timepoint) %>%
+#   dplyr::select(-village_id, -timepoint) %>%
+#   as.matrix()
+
+# we have to verify if it has the same format that data that our model is giving
+#  here we named it fake_counts_matrix
+
+fake_counts_matrix_pivoted <- apply(fake_counts_matrix_pivoted, 2, function(x) as.numeric(trimws(x)))
+#dead_add_matrix_pivoted    <- apply(dead_add_matrix_pivoted,    2, function(x) as.numeric(trimws(x)))
+
+# re-check
+
+#stopifnot(all.equal(unname(dead_add_matrix_pivoted),  unname(fake_dead_add)))
+# stopifnot(all.equal(unname(dead_mult_matrix_pivoted), unname(fake_dead_mult)))
+stopifnot(inherits(allele_freq_matrix, "greta_array"))
+
+stopifnot(all.equal(unname(fake_counts_matrix_pivoted), unname(fake_counts_matrix)))
+
+observed_counts             <- as_data(fake_counts_matrix_pivoted)
+#observed_counts_pheno_add   <- as_data(dead_add_matrix_pivoted)
+observed_counts_allele     <- as_data(allele_count_matrix_pivoted)
+# observed_counts_pheno_mult  <- as_data(dead_mult_matrix_pivoted)
+# fitting the data by using his likelihood
+## genotype
+distribution(observed_counts)            <- dirichlet_multinomial(size = size_vector, alpha = alpha_matrix)
+
+
+# To avoid a new node and to fix the bug that was created here
+# we tell R in advance that observed_counts_pheno_add is a data
+#bserved_counts_pheno_add <- as_data(dead_add_matrix_pivoted)
+
+# and then we could apply the likelihood by telling in advance how should 
+# the alpha and beta in the betabinomial likelihood should be
+# betabin(n, alpha, beta)
+eps <- 1e-6
+# this part is the mechanistic part correlating genotype and phenotype
+# p_died_matrix comes from the theta and dominance
+# multiplying it with the phi-add meaning the overdispersion of the values
+# we consider that beta = 1 - mean, and alpha = mean * precision (phi-add)
+# here the eps = 0.000001,
+#p_died_add_safe <- eps + (1 - 2 * eps) * p_died_add_matrix
+#numerically this equation above allow us to not falling to 0 for p and 
+# will break the mcmc so if p_died_matrix = 0, we have 0.000001 + (1- 2*0.000001)*0
+# = 0.0000001
+alpha_beta_add <- p_died_add_safe * phi_add
+beta_beta_add  <- (1 - p_died_add_safe) * phi_add
+
+distribution(observed_counts_pheno_add) <- beta_binomial(size = M_z, alpha = alpha_beta_add, beta = beta_beta_add)
+
+# allele frequency data likelihood
+true_allele_freq_safe <- eps + (1 - 2 * eps) * true_allele_freq
+fake_allele_count <- matrix(
+  rbinom(length(true_allele_freq_safe), size = 2 * M_z, prob = true_allele_freq_safe),
+  nrow = n_villages * Tmax
+)
+
+allele_freq_safe  <- eps + (1 - 2 * eps) * allele_freq_matrix
+alpha_beta_allele <- allele_freq_safe * phi_allele
+beta_beta_allele  <- (1 - allele_freq_safe) * phi_allele
+
+distribution(observed_counts_allele) <- beta_binomial(size = 2 * M_z, alpha = alpha_beta_allele, beta = beta_beta_allele)
+
+# alpha_beta_mult <- p_died_mult_matrix * phi_mult
+# beta_beta_mult  <- (1 - p_died_mult_matrix) * phi_mult
+# p_sample_mult   <- beta(alpha_beta_mult, beta_beta_mult)
+ 
+## looking on available distribution in greta package we have
+#beta_binomial(size, alpha, beta, dim = NULL)
+#distribution(observed_counts_pheno_add)  <- beta_binomial(size = M_z, alpha = alpha_beta_add, beta = beta_beta_add)
+# distribution(observed_counts_pheno_add)  <- beta_binomial(size = M_z, prob = p_sample_add)
+#distribution(observed_counts_pheno_mult)  <- beta_binomial(size = M_z, alpha = alpha_beta_mult, beta = beta_beta_mult)
+# distribution(observed_counts_pheno_mult) <- binomial(size = M_z, prob = p_sample_mult)
+# distribution(observed_counts_pheno_add)  <- binomial(size = M_z, prob = p_died_add_matrix)
+# distribution(observed_counts_pheno_mult) <- binomial(size = M_z, prob = p_died_mult_matrix)
+
+# estimation of the parameters byb using the model f unction of greta
+geno_model <- model(betamat, h, rho_z, p_village, theta,  phi_add, phi_allele)
+# geno_model <- model(betamat, h, rho_z, p_village, s_matrix)
+ # 5- Plotting the DAG to see the nodes, plot the parameters by using mcmc_draws
+# this code was trying to get the png of the dag but it didn't work
+# png(filename = "almost_model.png", 
+#     width = 280, height = 100, units = "mm", res = 200)
+# dag <- plot(geno_model)
+# print(dag)
+# dev.off()
+ 
+# here is am alternative
+# library(DiagrammeR)
+# library(DiagrammeRsvg)  
+# library(rsvg)
+dag <- plot(geno_model)
+print(dag)
+# this is the code to get the best version of the dag
+svg_code <- export_svg(dag)
+rsvg_png(charToRaw(svg_code), file = "dataoutput/2IRattempt_dag.png", width = 3000, height = 1200)
+
+dev.list() # this is to check because here our code were stuck at the dag graph
+dev.off() # this is to remove all images
+
+# by using the mcmc, here we are trying to recover the parameters
+# warmup named also burnin are the draw that would be not considered as they
+# could consider as test for the draw
+# chain is the chaine de valeur produite par le mcmc
+# we think like we are investigated an area and identified a breeding site but
+# didn't take coordinates (that's dumb), so we are sending others entomologists
+# to investigate around the village to find it
+# we could send 1 entomologist to do the task but we will be more confident
+# if we send 4 entomologists that they will find the areas
+draws <- greta::mcmc(
+  model     = geno_model,
+  n_samples = 200,
+  warmup    = 200,
+  chains    = 4
+)
+####################################################
+### 7) Interpreting the results of the mcmc 
+####################################################
+# investigating that the model given by mcmc is really giving what we are expecting
+geno_model$dag$node_list |> length()
+draws <- greta::mcmc(geno_model, n_samples = 50, warmup = 50, chains = 1)
+colnames(as.matrix(draws))
+
+library(bayesplot)
+mcmc_trace(draws, regex_pars = c("rho_z"))
+
+mcmc_trace(draws, regex_pars = "p_village\\[(1|2|3|4|5|6|7|8|9|10),")
+
+mcmc_trace(draws, regex_pars = c("p_village"))
+
+# compare the values of true priors with the posterior priors
+true_p_village
+true_h
+true_betamat
+
+# let's save our posterior in an object
+posterior_draws <- as.matrix(draws)
+
+
+# to get the summary statistic
+statistic_summary <- summary(draws)$statistics
+
+####################################################################
+### 8) Comparing TRUE parameter values (used to simulate fake data)
+###    against the MCMC POSTERIOR draws — values + plots together
+####################################################################
+### 8.1 - Build a lookup: param name -> true value
+# betamat[i,k]  (loci x covariates)
+# reminder to myself that expand_grid is giving all possible combinaiton of
+# a list, sp expand_grid (vect1, vect2)
+# paste0 = create a text value
+# so here we are saying for each possible combination, 
+true_betamat <- matrix(as.numeric(true_betamat), nrow = n_loci, ncol = K)
+betamat_truth <- expand_grid(row = seq_len(n_loci), col = seq_len(K)) %>%
+  mutate(
+    param = paste0("betamat[", row, ",", col, "]"),
+    true_value = true_betamat[cbind(row, col)], # select the value of 
+    # based on the row and col values, and put a matrix with
+    family= "betamat",
+    label = paste0("betamat,[", locus_names[row], ", cov", col, "]" )
+  )
+
+# because tibble is more for scalar and vectors
+# and our h is more a vector, as it is changing based on the loci 
+# dominance will also changed based on the type of insecticide
+#  but as here we don't consider insecticide type yet then we
+# we are assuming that dominance change based on gene
+h_truth <- tibble(
+  row= seq_len(n_loci),
+  param = paste0("h[", row, ",1]"),
+  true_value = as.numeric(true_h),
+  family = "h",
+  label = paste0("h[", locus_names, "]")
+)
+
+
+# rho_z is a scalar
+rho_z_truth <- tibble(
+  param = "rho_z",
+  true_value = as.numeric(true_rho_z),
+  family = "rho_z",
+  label = "rho_z"
+)
+
+# p_village: which depend on the loci and the village
+# next step should be in depend of the type of insecticide 
+# so it is a matrix with row = n_villages and col = n_loci
+p_truth <- expand.grid(row = seq_len(n_villages), col = seq_len(n_loci)) %>%
+  mutate(
+    param  = paste0("p_village[", row, ",", col, "]"),
+    true_value = true_p_village[cbind(row, col)],
+    family = "p_village",
+    label  = paste0("p[", villages$village[row], ", ", locus_names[col])
+  )
+
+# here we are trying to get a dataframe to show the value of the 4 parameters
+# parameters_combined <- bind_rows(betamat_truth, h_truth, rho_z_truth, p_truth)
+parameters_combined<- bind_rows(
+  betamat_truth %>% dplyr::select(param, true_value, family, label),
+  h_truth        %>% dplyr::select(param, true_value, family, label),
+  rho_z_truth      %>% dplyr::select(param, true_value, family, label),
+  p_truth        %>% dplyr::select(param, true_value, family, label)
+)
+
+setdiff(parameters_combined$param, colnames(posterior_draws))
+
+##############################################  
+### 8.2 - Long-format posterior draws + attach truth
+##############################################
+posterior_long <- as_tibble(posterior_draws) %>%
+  mutate(draw = row_number()) %>%
+  pivot_longer(-draw, names_to = "param", values_to = "posterior_value") %>%
+  inner_join(parameters_combined, by = "param")
+
+
+rhat <- coda::gelman.diag(draws, autoburnin = FALSE, multivariate = FALSE)
+>>>>>>> 487c0381daa67570f5d47ee6a97afe5b335840df
 ##############################################
 ### 8.3 - Numeric summary table: posterior vs truth
 ##############################################
@@ -1461,7 +2083,10 @@ keep_labels_s
 df_s     <- posterior_long      %>% filter(family == "s", label %in% keep_labels_s)
 truths_s <- parameters_combined %>% filter(family == "s", label %in% keep_labels_s)
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 487c0381daa67570f5d47ee6a97afe5b335840df
 # to plot for the initial allele frequency
 df_keep     <- posterior_long      %>% filter(family == "p_village", label %in% keep_labels)
 truths_keep <- parameters_combined %>% filter(family == "p_village", label %in% keep_labels)
@@ -1638,6 +2263,15 @@ write.csv(recovery_summary, "dataoutput/recovery_summary.csv", row.names = FALSE
 
 
 
+<<<<<<< HEAD
 class(x_cell_years)
 class(fitness_cell_years)
 class(effect_type)
+=======
+
+# check convergence
+rhats <- coda::gelman.diag(draws,
+                           autoburnin = FALSE,
+                           multivariate = FALSE)
+summary(rhats$psrf)
+>>>>>>> 487c0381daa67570f5d47ee6a97afe5b335840df
