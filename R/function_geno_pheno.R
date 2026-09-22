@@ -21,16 +21,91 @@ compute_s_greta <- function(betamat, X) {
 #   z / sum(z)
 # }
 # greta version
-probability_genotype_fast_greta <- function(p, L, R) {
-  prob_left  <- sweep(L, 2, 1 - p, "*") + sweep(1 - L, 2, p, "*")
-  prob_right <- sweep(R, 2, 1 - p, "*") + sweep(1 - R, 2, p, "*")
-  dup <- 1 + L - R
-  # z <- apply(prob_left * prob_right * dup, 1, "prod")
-  z <- exp(log(prob_left * prob_right * dup + 1e-12) %*% rep(1, ncol(L)))
-  # z <- exp(rowSums(log(prob_left * prob_right * dup + 1e-12)))
-  z / sum(z)
+# probability_genotype_fast_greta <- function(p, L, R) {
+#   prob_left  <- sweep(L, 2, 1 - p, "*") + sweep(1 - L, 2, p, "*")
+#   prob_right <- sweep(R, 2, 1 - p, "*") + sweep(1 - R, 2, p, "*")
+#   dup <- 1 + L - R
+#   # z <- apply(prob_left * prob_right * dup, 1, "prod")
+#   z <- exp(log(prob_left * prob_right * dup + 1e-12) %*% rep(1, ncol(L)))
+#   # z <- exp(rowSums(log(prob_left * prob_right * dup + 1e-12)))
+#   z / sum(z)
+# }
+
+probability_genotype_rows_greta <- function(p) {
+  
+  p <- 1e-6 + (1 - 2e-6) * p
+  
+  log_z <- log(p)     %*% as_data(t(SR_mask + 2 * RR_mask)) +
+    log(1 - p) %*% as_data(t(2 * SS_mask + SR_mask)) +
+    ones(nrow(p), 1) %*% as_data(t(log(2) * rowSums(SR_mask)))
+  
+  log_z <- log_z - (log_z %*% ones_G) / ncol(ones_G)
+  
+  z <- exp(log_z)
+  z / (z %*% ones_G)
 }
 
+pre_pad_cube <- function(cube, baseline_year = 1995) {
+  # work out the naming system and first year
+  first_layer_name <- names(cube)[1]
+  earliest_year <- str_sub(first_layer_name, start = -4L)
+  prefix <- str_remove(first_layer_name, earliest_year)
+  n_years_pad <- as.numeric(earliest_year) - baseline_year
+  
+  # check the baseline year
+  if (!(n_years_pad > 0)) {
+    warning("baseline_year must be earlier than the first year in the raster",
+            call. = FALSE)
+    return(cube)
+  }
+  
+  # make some padding
+  pad_layer <- cube[[1]]
+  padding <- replicate(n_years_pad, pad_layer, simplify = FALSE) %>%
+    do.call(c, .)
+  # name the padding years
+  years_padding <- as.numeric(earliest_year) - rev(seq_len(n_years_pad))
+  names(padding) <- paste0(prefix, years_padding)
+  
+  # prepend and return
+  c(padding, cube)
+  
+}
+
+
+# given a SpatRaster representing a space-time cube, pad with additional years
+# forward to a later end year, repeating the last value in the cube. cube must
+# have contiguous years, each layer correctly named using the naming format:
+# name_year, e.g.: irs_2001 or nets_2010. This will return a SpatRaster with
+# later years added, using the same naming convention, repeating the last year
+# in the SpatRaster
+post_pad_cube <- function(cube, end_year = 2030) {
+  n_layers_orig <- terra::nlyr(cube)
+  # work out the naming system and first year
+  last_layer_name <- names(cube)[n_layers_orig]
+  latest_year <- str_sub(last_layer_name, start = -4L)
+  prefix <- str_remove(last_layer_name, latest_year)
+  n_years_pad <- end_year - as.numeric(latest_year)
+  
+  # check the end year
+  if (!(n_years_pad > 0)) {
+    warning("end_year must be later than the last year in the raster",
+            call. = FALSE)
+    return(cube)
+  }
+  
+  # make some padding
+  pad_layer <- cube[[n_layers_orig]]
+  padding <- replicate(n_years_pad, pad_layer, simplify = FALSE) %>%
+    do.call(c, .)
+  # name the padding years
+  years_padding <- as.numeric(latest_year) + seq_len(n_years_pad)
+  names(padding) <- paste0(prefix, years_padding)
+  
+  # append and return
+  c(cube, padding)
+  
+}
 
 # Multilocus polygenic selection step
 # polygenic_multilocus_next_step <- function(z, w, h, L, R) {

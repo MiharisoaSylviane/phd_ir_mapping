@@ -677,7 +677,7 @@ allele_freq_matrix <- do.call(rbind, c(
   })
 ))[as.vector(t(matrix(seq_len(n_cells * Tmax), nrow = n_cells, ncol = Tmax))), ]
 
-<<<<<<< HEAD
+
 
 # likelihood 
 Z_matrix     <- probability_genotype_rows_greta(allele_freq_matrix)
@@ -858,56 +858,53 @@ dim(Gw)
 # 
 # class(s_matrix)
 # dim(s_matrix)
-=======
+
   # 
-  Z_list_i <- simulate_genotype_timecourse_greta(
-    p = p_i, w = w_i, h = h, Tmax = Tmax,
-    SS_mask = SS_mask_g, RR_mask = RR_mask_g, SR_mask = SR_mask_g,
-    L = L_g, R = R_g
-  )
-  
-  for (t in seq_len(Tmax)) {
-    # genotype frequency (1 X G)
-    Z_rows[[row_id]]     <- t(Z_list_i[[t]])
-    alpha_rows[[row_id]] <- Z_rows[[row_id]] * alpha0_z + 1e-8   
-    village_vec[row_id]  <- i
-    time_vec[row_id]    <- t
-    theta_it            <- t(theta[row_id, ])
-    Ugc <- compute_Ugc(theta_it, h, SS_mask_g, RR_mask_g, SR_mask_g)
-  
-    # allele
-    allele_freq_rows[[row_id]] <- t(allele_frequency_from_genotype_greta(Z_list_i[[t]], L_g, R_g))
-    
-    U_add_i  <- compute_Ustar_additive(Ugc_i, theta)
-    U_add_i <- compute_Ustar_additive(Ugc, theta_it)
-    # U_mult_i <- compute_Ustar_multiplicative(Ugc, theta_it)
-    
-    pdied_add_rows[[i]]  <- t(compute_p_died(U_add_i))
-    pdied_add_rows[[row_id]] <- t(compute_p_died_additive(U_add_i))
-    # pdied_mult_rows[[row_id]] <- t(compute_p_died(U_mult_i))
-    row_id              <- row_id + 1
-    
-  }
-}
-
-# (n_villages*Tmax) x G, true frequency
-Z_matrix     <- do.call(greta::abind, c(Z_rows, list(along = 1)))  
-# (n_villages*Tmax) x G
-alpha_matrix <- do.call(greta::abind, c(alpha_rows, list(along = 1)))  
-size_vector  <- rep(M_z, length(alpha_rows))  
-# alleles
-allele_freq_matrix   <- do.call(greta::abind, c(allele_freq_rows, list(along = 1)))
-# n_villages x G
-# p_died_add_matrix  <- do.call(greta::abind, c(pdied_add_rows,  list(along = 1)))
-# p_died_mult_matrix <- do.call(greta::abind, c(pdied_mult_rows, list(along = 1)))
-s_matrix <- do.call(greta::abind, c(s_rows, list(along = 1)))   # n_villages x n_loci
-w_matrix <- do.call(greta::abind, c(w_rows, list(along = 1)))
-
-class(s_matrix)
-dim(s_matrix)
-
-
-
+#   Z_list_i <- simulate_genotype_timecourse_greta(
+#     p = p_i, w = w_i, h = h, Tmax = Tmax,
+#     SS_mask = SS_mask_g, RR_mask = RR_mask_g, SR_mask = SR_mask_g,
+#     L = L_g, R = R_g
+#   )
+#   
+#   for (t in seq_len(Tmax)) {
+#     # genotype frequency (1 X G)
+#     Z_rows[[row_id]]     <- t(Z_list_i[[t]])
+#     alpha_rows[[row_id]] <- Z_rows[[row_id]] * alpha0_z + 1e-8   
+#     village_vec[row_id]  <- i
+#     time_vec[row_id]    <- t
+#     theta_it            <- t(theta[row_id, ])
+#     Ugc <- compute_Ugc(theta_it, h, SS_mask_g, RR_mask_g, SR_mask_g)
+#   
+#     # allele
+#     allele_freq_rows[[row_id]] <- t(allele_frequency_from_genotype_greta(Z_list_i[[t]], L_g, R_g))
+#     
+#     U_add_i  <- compute_Ustar_additive(Ugc_i, theta)
+#     U_add_i <- compute_Ustar_additive(Ugc, theta_it)
+#     # U_mult_i <- compute_Ustar_multiplicative(Ugc, theta_it)
+#     
+#     pdied_add_rows[[i]]  <- t(compute_p_died(U_add_i))
+#     pdied_add_rows[[row_id]] <- t(compute_p_died_additive(U_add_i))
+#     # pdied_mult_rows[[row_id]] <- t(compute_p_died(U_mult_i))
+#     row_id              <- row_id + 1
+#     
+#   }
+# }
+# 
+# # (n_villages*Tmax) x G, true frequency
+# Z_matrix     <- do.call(greta::abind, c(Z_rows, list(along = 1)))  
+# # (n_villages*Tmax) x G
+# alpha_matrix <- do.call(greta::abind, c(alpha_rows, list(along = 1)))  
+# size_vector  <- rep(M_z, length(alpha_rows))  
+# # alleles
+# allele_freq_matrix   <- do.call(greta::abind, c(allele_freq_rows, list(along = 1)))
+# # n_villages x G
+# # p_died_add_matrix  <- do.call(greta::abind, c(pdied_add_rows,  list(along = 1)))
+# # p_died_mult_matrix <- do.call(greta::abind, c(pdied_mult_rows, list(along = 1)))
+# s_matrix <- do.call(greta::abind, c(s_rows, list(along = 1)))   # n_villages x n_loci
+# w_matrix <- do.call(greta::abind, c(w_rows, list(along = 1)))
+# 
+# class(s_matrix)
+# dim(s_matrix)
 
 
 # to check bug or any errors
@@ -922,7 +919,7 @@ dim(s_matrix)
 ### 4- Fake data generating with the prior and likelihood
 #########################################################
 #sim_result <- calculate(alpha_matrix, theta, Z_matrix, betamat, h, rho_z, p_village, p_died_mult_matrix, nsim = 1)
-<<<<<<< HEAD
+
 # sim_result <- calculate(alpha_matrix, theta, Z_matrix, betamat, h, rho_z, p_died_add_matrix, p_village, phi_add, allele_freq_matrix, phi_allele, s_matrix, w_matrix, nsim = 1)
 # #sim_result <- calculate(alpha_matrix, Z_matrix, betamat, h, rho_z, p_village, allele_freq_matrix, s_matrix, w_matrix, nsim = 1)
 # # str(sim_result)
