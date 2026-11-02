@@ -579,7 +579,73 @@ ggplot(filter(par_sim, !grepl("^p_cells", parameter)),
   labs(x = "Parameter value", y = "Density", fill = NULL) +
   theme_minimal()
 
-
+# #############################################################
+# ### 14- Recovery of p and s (all cells, all years)
+# #############################################################
+# nsim <- 100
+# 
+# # check: greta with the true parameters gives back the true p
+# p_cells_true <- p_true[matrix_rows$year == min(years), ]
+# p_check_true <- calculate(allele_freq_matrix,
+#                           values = list(betamat = betamat_true,
+#                                         h       = matrix(h_true, n_loci, 1),
+#                                         p_cells = p_cells_true))[[1]]
+# max(abs(p_check_true - p_true))                        # near 0
+# 
+# # posterior parameters
+# posts <- calculate(h, betamat, p_cells, values = draws, nsim = nsim)
+# 
+# post_p <- array(NA, dim = c(nsim, dim(p_true)))   # 100 x 196 x 2
+# post_s <- array(NA, dim = c(nsim, dim(s_true)))   # 100 x 147 x 2
+# for (k in 1:nsim) {
+#   # p: greta, one draw at a time (no crash with one draw)
+#   post_p[k, , ] <- calculate(allele_freq_matrix,
+#                              values = list(betamat = posts$betamat[k, , ],
+#                                            h       = matrix(posts$h[k, , 1], n_loci, 1),
+#                                            p_cells = posts$p_cells[k, , ]))[[1]]
+#   # s: one line, same formula as the model
+#   post_s[k, , ] <- x_cell_years %*% exp(posts$betamat[k, , ])
+# }
+# stopifnot(!anyNA(post_p), !anyNA(post_s))
+# 
+# # posterior summary per row and locus, next to the truth
+# summarise_post <- function(arr, truth) {
+#   expand_grid(row = 1:dim(arr)[2], l = 1:dim(arr)[3]) %>%
+#     mutate(mean     = apply(arr, c(2, 3), mean)[cbind(row, l)],
+#            post_var = apply(arr, c(2, 3), var)[cbind(row, l)],
+#            lower    = apply(arr, c(2, 3), quantile, 0.025)[cbind(row, l)],
+#            upper    = apply(arr, c(2, 3), quantile, 0.975)[cbind(row, l)],
+#            true     = truth[cbind(row, l)],
+#            locus    = locus_names[l],
+#            covered  = true >= lower & true <= upper,
+#            bias     = mean - true,
+#            mse      = bias^2 + post_var)
+# }
+# 
+# p_check <- summarise_post(post_p, p_true) %>%
+#   left_join(matrix_rows, by = "row")
+# 
+# s_rows  <- all_extract %>% select(cell, year) %>% mutate(row = row_number())
+# s_check <- summarise_post(post_s, s_true) %>%
+#   left_join(s_rows, by = "row")
+# 
+# # p: estimated vs true, one point per cell-year
+# ggplot(p_check, aes(true, mean)) +
+#   geom_abline(linetype = "dashed") +
+#   geom_linerange(aes(ymin = lower, ymax = upper), colour = "grey60") +
+#   geom_point(colour = "#2171b5", size = 1) +
+#   facet_grid(locus ~ year) +
+#   labs(x = "True p", y = "Posterior mean p (95% interval)") +
+#   theme_minimal()
+# 
+# # s: estimated vs true, one point per cell-year
+# ggplot(s_check, aes(true, mean)) +
+#   geom_abline(linetype = "dashed") +
+#   geom_linerange(aes(ymin = lower, ymax = upper), colour = "grey60") +
+#   geom_point(colour = "#cb181d", size = 1) +
+#   facet_grid(locus ~ year, scales = "free") +
+#   labs(x = "True s", y = "Posterior mean s (95% interval)") +
+#   theme_minimal()
 
 # End
 # for(i in seq_len(n_villages)) {
